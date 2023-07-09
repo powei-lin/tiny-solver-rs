@@ -1,11 +1,11 @@
 mod example_cost;
+mod cost_function;
 extern crate nalgebra as na;
 
-use std::ops::Add;
 
 use na::{Matrix4, Vector4};
 
-use example_cost::cost_trait::CostFuncNA;
+use cost_function::CostFunc;
 use example_cost::{ExampleStatic, Matrix2x1d, Matrix2x3d, Matrix3x1d};
 
 fn main() {
