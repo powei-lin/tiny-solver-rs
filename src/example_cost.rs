@@ -1,16 +1,18 @@
 pub mod cost_trait;
-pub struct ExampleStatic {
-}
+pub type Matrix2x1d = nalgebra::SMatrix<f64, 2, 1>;
+pub type Matrix3x1d = nalgebra::SMatrix<f64, 3, 1>;
+pub type Matrix2x3d = nalgebra::SMatrix<f64, 2, 3>;
+pub struct ExampleStatic {}
 
-impl cost_trait::CostFunc<f64, 3, 2> for ExampleStatic {
-    fn apply(params: &[f64; 3], residual: &mut faer_core::Mat<f64>, jacobian: Option<&mut faer_core::Mat<f64>>) {
+impl cost_trait::CostFuncNA<f64, 3, 2> for ExampleStatic {
+    fn apply(params: &Matrix3x1d, residual: &mut Matrix2x1d, jacobian: Option<&mut Matrix2x3d>) {
         let x = params[0];
         let y = params[1];
         let z = params[2];
-        *residual = faer_core::mat![[x + 2.0 * y + 4.0 * z],[y*z]];
+        *residual = Matrix2x1d::new(x + 2.0 * y + 4.0 * z, y * z);
         // residual[1] = y * z;
         if let Some(jacobian) = jacobian {
-            *jacobian = faer_core::mat![[1.0, 2.0, 4.0], [0.0, z, y]];
+            *jacobian = Matrix2x3d::new(1.0, 2.0, 4.0, 0.0, z, y);
         }
     }
 }

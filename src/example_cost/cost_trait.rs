@@ -1,9 +1,12 @@
-use faer_core::{Entity, Mat};
-pub trait CostFunc<T: Entity, const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
+extern crate nalgebra as na;
+
+use na::SMatrix;
+
+pub trait CostFuncNA<T, const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
     fn apply(
-        _params: &[T; NUM_PARAMETERS],
-        _residual: &mut Mat<T>,
-        _jacobian: Option<&mut Mat<T>>,
+        _params: &SMatrix<T, NUM_PARAMETERS, 1>,
+        _residual: &mut SMatrix<T, NUM_RESIDUALS, 1>,
+        _jacobian: Option<&mut SMatrix<T, NUM_RESIDUALS, NUM_PARAMETERS>>,
     ) {
     }
     fn num_params() -> usize {
