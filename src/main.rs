@@ -1,9 +1,6 @@
-mod example_cost;
 mod cost_function;
+mod example_cost;
 extern crate nalgebra as na;
-
-
-use na::{Matrix4, Vector4};
 
 use cost_function::CostFunc;
 use example_cost::{ExampleStatic, Matrix2x1d, Matrix2x3d, Matrix3x1d};
@@ -21,7 +18,7 @@ fn main() {
     let mut u: f64;
     let mut v = 2;
 
-    for i in 0..max_iterations{
+    for i in 0..max_iterations {
         let mut residual = Matrix2x1d::default();
         let mut jac = Matrix2x3d::default();
         ExampleStatic::apply(&x0, &mut residual, Some(&mut jac));
@@ -34,7 +31,7 @@ fn main() {
 
         let max_gradient = g_.abs().max();
         println!("mg{}", max_gradient);
-        if max_gradient < gradient_threshold{
+        if max_gradient < gradient_threshold {
             println!("gradient too small. {}", max_gradient);
             break;
         }
@@ -49,11 +46,9 @@ fn main() {
         println!("jtj {}", jtj_augmented_);
         println!("mm {}", mm);
 
-
         let dx = jtj_augmented_.lu().solve(&g_).unwrap();
         x0 += dx;
         // u = H.diagonal().max();
-
     }
     println!("x0 {}", x0);
 
