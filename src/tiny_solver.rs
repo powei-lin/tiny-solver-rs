@@ -4,19 +4,17 @@ use crate::cost_function;
 use num_traits;
 extern crate nalgebra as na;
 
-use na::{SMatrix, Scalar};
-
 struct TinySolver<
-    T: Scalar + num_traits::identities::Zero,
+    T: na::Scalar + num_traits::identities::Zero,
     const NUM_PARAMETERS: usize,
     const NUM_RESIDUALS: usize,
     // F: cost_function::CostFunc<T, NUM_PARAMETERS, NUM_RESIDUALS>,
 > {
     // cost_function: F,
     // jtj: SMatrix<Scalar, NUM_RESIDUALS, >,
-    _params: SMatrix<T, NUM_PARAMETERS, 1>,
-    _residual: SMatrix<T, NUM_RESIDUALS, 1>,
-    _jacobian: SMatrix<T, NUM_RESIDUALS, NUM_PARAMETERS>,
+    _params: na::SMatrix<T, NUM_PARAMETERS, 1>,
+    _residual: na::SMatrix<T, NUM_RESIDUALS, 1>,
+    _jacobian: na::SMatrix<T, NUM_RESIDUALS, NUM_PARAMETERS>,
     gradient_threshold: f64,
     relative_step_threshold: f64,
     error_threshold: f64,
@@ -25,16 +23,16 @@ struct TinySolver<
 }
 
 impl<
-        T: Scalar + num_traits::identities::Zero,
+        T: na::Scalar + num_traits::identities::Zero,
         const NUM_PARAMETERS: usize,
         const NUM_RESIDUALS: usize,
     > TinySolver<T, NUM_PARAMETERS, NUM_RESIDUALS>
 {
     pub fn init() -> Self {
         Self {
-            _params: SMatrix::zeros(),
-            _residual: SMatrix::zeros(),
-            _jacobian: SMatrix::zeros(),
+            _params: na::SMatrix::zeros(),
+            _residual: na::SMatrix::zeros(),
+            _jacobian: na::SMatrix::zeros(),
             gradient_threshold: 1e-16,
             relative_step_threshold: 1e-16,
             error_threshold: 1e-16,
@@ -48,9 +46,10 @@ impl<
     }
 }
 
-trait TS<Scalar, const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
-    type F: cost_function::CostFunc<NUM_PARAMETERS, NUM_RESIDUALS>;
-}
+// trait TS<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
+//     type F: cost_function::CostFunc<NUM_PARAMETERS, NUM_RESIDUALS>;
+// }
+// trait TS2<F: cost_function::CostFunc<NUM_PARAMETERS, NUM_RESIDUALS>> {}
 
 // pub trait TinySolverT<
 //     Scalar,

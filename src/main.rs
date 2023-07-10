@@ -21,7 +21,7 @@ fn main() {
     for i in 0..max_iterations {
         let mut residual = Matrix2x1d::default();
         let mut jac = Matrix2x3d::default();
-        ExampleStatic::apply(&x0, &mut residual, Some(&mut jac));
+        ExampleStatic::apply(&mut x0, &mut residual, Some(&mut jac));
         let g_ = jac.transpose() * -residual.clone();
         let H = jac.transpose() * jac.clone();
         println!("residual \n{}\n", residual);
