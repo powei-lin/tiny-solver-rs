@@ -1,43 +1,83 @@
 extern crate nalgebra as na;
 
-use num_traits;
-pub trait CostFunc<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
-    type T: na::Scalar + num_traits::identities::Zero;
-    const NUM_PARAMETERS: usize = NUM_PARAMETERS;
-    const NUM_RESIDUALS: usize = NUM_RESIDUALS;
-    fn apply(
-        _params: &mut na::SMatrix<Self::T, NUM_PARAMETERS, 1>,
-        _residual: &mut na::SMatrix<Self::T, NUM_RESIDUALS, 1>,
-        _jacobian: Option<&mut na::SMatrix<Self::T, NUM_RESIDUALS, NUM_PARAMETERS>>,
-    ) {
-        unimplemented!()
+struct Status {
+    gradient_threshold: f64,
+    relative_step_threshold: f64,
+    error_threshold: f64,
+    initial_scale_factor: f64,
+    max_iterations: usize,
+}
+impl Status {
+    pub fn init() -> Status {
+        Status {
+            gradient_threshold: 1e-16,
+            relative_step_threshold: 1e-16,
+            error_threshold: 1e-16,
+            initial_scale_factor: 1e-3,
+            max_iterations: 100,
+        }
     }
 }
 
-struct CC {
-    NUM_PARAMETERS: usize,
-    NUM_RESIDUALS: usize,
-}
+// pub trait TinySolver<T: na::RealField, const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
 
-// impl CostFunc<3, 2> for CC {
-//     type T = f64;
-//     fn apply(
-//         params: &mut na::SMatrix<Self::T, 3, 1>,
-//         residual: &mut na::SMatrix<Self::T, 2, 1>,
-//         jacobian: Option<&mut na::SMatrix<Self::T, 2, 3>>,
-//     ) {
-//         let x = params[0];
-//         let y = params[1];
-//         let z = params[2];
-//         *residual[0] = x + 2.0 * y + 4.0 * z;
-//         *residual[1] = y * z;
-//         if let Some(jacobian) = jacobian {
-//             *jacobian[(0, 0)] = 1.0;
-//             *jacobian[(0, 0)] = 2.0;
-//             *jacobian[(0, 0)] = 4.0;
-//             *jacobian[(0, 0)] = 0.0;
-//             *jacobian[(0, 0)] = z;
-//             *jacobian[(0, 0)] = y;
-//         }
-//     }
 // }
+
+pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>{
+    const NUM_PARAMETERS: usize = NUM_PARAMETERS;
+    const NUM_RESIDUALS: usize = NUM_RESIDUALS;
+    fn cost_function(
+        _params: &mut na::SMatrix<f64, NUM_PARAMETERS, 1>,
+        _residual: &mut na::SMatrix<f64, NUM_RESIDUALS, 1>,
+        _jacobian: Option<&mut na::SMatrix<f64, NUM_RESIDUALS, NUM_PARAMETERS>>,
+    ) {
+        unimplemented!()
+    }
+    fn solve(params: &mut na::SMatrix<f64, NUM_PARAMETERS, 1>) -> bool {
+        let mut status = Status::init();
+        let mut u: f64;
+        let mut v = 2;
+        let mut residual = na::SMatrix::<f64, NUM_RESIDUALS, 1>::zeros();
+        let mut jac = na::SMatrix::<f64, NUM_RESIDUALS, NUM_PARAMETERS>::zeros();
+        for i in 0..status.max_iterations {
+            Self::cost_function(params, &mut residual, Some(&mut jac));
+            let g_ = jac.transpose() * -residual.clone();
+            let H = jac.transpose() * jac.clone();
+            println!("residual \n{}\n", residual);
+            println!("jac \n{}\n", &jac);
+            println!("H:\n{}", H);
+            println!("gradient:\n{}", g_);
+
+            let max_gradient = g_.abs().max();
+            println!("mg{}", max_gradient);
+            if max_gradient < status.gradient_threshold {
+                println!("gradient too small. {}", max_gradient);
+                break;
+            }
+
+            u = status.initial_scale_factor * H.diagonal().max();
+            v = 2;
+            println!("u: {}", u);
+            let mut jtj = na::DMatrix::<f64>::zeros(NUM_PARAMETERS, NUM_PARAMETERS);
+            for i in 0..NUM_PARAMETERS {
+                for j in 0..NUM_PARAMETERS {
+                    if i == j{
+                        jtj[(i, j)] = H[(i, j)]+u;
+                    }
+                    else{
+                        jtj[(i, j)] = H[(i, j)];
+                    }
+                }
+            }
+
+            println!("jtj {}", jtj);
+            let dx = na::linalg::LU::new(jtj).solve(&g_).unwrap();
+            *params += dx;
+            // u = H.diagonal().max();
+        }
+        println!("x0 {}", params);
+
+        true
+    }
+    
+}
