@@ -12,5 +12,5 @@ nalgebra = "0.32.2"
 num-traits = "0.2.15"
 
 [[example]]
-name = "t0"
+name = "example_solve"
 crate-type = ["bin"]

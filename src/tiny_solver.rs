@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 use crate::status::Status;
 
-pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>{
+pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
     const NUM_PARAMETERS: usize = NUM_PARAMETERS;
     const NUM_RESIDUALS: usize = NUM_RESIDUALS;
     fn cost_function(
@@ -39,10 +39,9 @@ pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>
             let mut jtj = na::DMatrix::<f64>::zeros(NUM_PARAMETERS, NUM_PARAMETERS);
             for i in 0..NUM_PARAMETERS {
                 for j in 0..NUM_PARAMETERS {
-                    if i == j{
-                        jtj[(i, j)] = H[(i, j)]+u;
-                    }
-                    else{
+                    if i == j {
+                        jtj[(i, j)] = H[(i, j)] + u;
+                    } else {
                         jtj[(i, j)] = H[(i, j)];
                     }
                 }
@@ -56,5 +55,4 @@ pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>
 
         true
     }
-    
 }
