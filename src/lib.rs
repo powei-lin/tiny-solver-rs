@@ -1,2 +1,3 @@
 pub mod tiny_solver;
-pub mod example_cost;
+pub mod tiny_solver_faer;
+pub mod status;

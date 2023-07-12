@@ -1,27 +1,5 @@
 extern crate nalgebra as na;
-
-struct Status {
-    gradient_threshold: f64,
-    relative_step_threshold: f64,
-    error_threshold: f64,
-    initial_scale_factor: f64,
-    max_iterations: usize,
-}
-impl Status {
-    pub fn init() -> Status {
-        Status {
-            gradient_threshold: 1e-16,
-            relative_step_threshold: 1e-16,
-            error_threshold: 1e-16,
-            initial_scale_factor: 1e-3,
-            max_iterations: 100,
-        }
-    }
-}
-
-// pub trait TinySolver<T: na::RealField, const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize> {
-
-// }
+use crate::status::Status;
 
 pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>{
     const NUM_PARAMETERS: usize = NUM_PARAMETERS;
@@ -73,7 +51,6 @@ pub trait TinySolverF64<const NUM_PARAMETERS: usize, const NUM_RESIDUALS: usize>
             println!("jtj {}", jtj);
             let dx = na::linalg::LU::new(jtj).solve(&g_).unwrap();
             *params += dx;
-            // u = H.diagonal().max();
         }
         println!("x0 {}", params);
 
