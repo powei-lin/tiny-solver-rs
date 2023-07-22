@@ -441,6 +441,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-dual"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8d72ab214ce95ccd05540f0d0ea198fbd6eefadea80f4d6b240e59df3cdc392"
+dependencies = [
+ "approx",
+ "nalgebra",
+ "num-traits",
+ "simba",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -638,6 +650,7 @@ dependencies = [
  "faer-core",
  "faer-lu",
  "nalgebra",
+ "num-dual",
  "num-traits",
 ]
 

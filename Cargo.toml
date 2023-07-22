@@ -9,6 +9,7 @@ edition = "2021"
 faer-core = "0.9.1"
 faer-lu = "0.9.1"
 nalgebra = "0.32.2"
+num-dual = "0.7.1"
 num-traits = "0.2.15"
 
 [[example]]
