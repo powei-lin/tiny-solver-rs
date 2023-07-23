@@ -7,8 +7,8 @@ pub struct ExampleStatic {}
 
 impl TinySolver<3, 2> for ExampleStatic {
     fn cost_function(
-            params: nalgebra::SVector<num_dual::DualSVec64<3>, 3>
-        ) -> nalgebra::SVector<num_dual::DualSVec64<3>, 2> {
+        params: nalgebra::SVector<num_dual::DualSVec64<3>, 3>,
+    ) -> nalgebra::SVector<num_dual::DualSVec64<3>, 2> {
         let x = params[0];
         let y = params[1];
         let z = params[2];
@@ -19,5 +19,8 @@ fn main() {
     let mut x0 = Matrix3x1d::new(0.76026643, -30.01799744, 0.55192142);
     ExampleStatic::solve(&mut x0);
     println!("auto grad: {}", x0);
-    println!("residaul: {}", ExampleStatic::cost_function(x0.map(num_dual::DualSVec64::from_re)));
+    println!(
+        "residaul: {}",
+        ExampleStatic::cost_function(x0.map(num_dual::DualSVec64::from_re))
+    );
 }
