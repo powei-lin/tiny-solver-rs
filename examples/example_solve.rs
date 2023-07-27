@@ -1,6 +1,6 @@
 use std::ops::Mul;
 
-use tiny_solver_rs::tiny_solver::TinySolver;
+use tiny_solver::TinySolver;
 
 pub type Matrix3x1d = nalgebra::SMatrix<f64, 3, 1>;
 pub struct ExampleStatic {}

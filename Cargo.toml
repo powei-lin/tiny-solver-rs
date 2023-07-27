@@ -1,5 +1,5 @@
 [package]
-name = "tiny-solver-rs"
+name = "tiny-solver"
 version = "0.1.0"
 edition = "2021"
 
