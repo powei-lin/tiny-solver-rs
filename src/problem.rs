@@ -14,8 +14,10 @@ pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
-    // residual_func: dyn FnOnce(Vec<na::DVector<num_dual::DualDVec64>>) -> num_dual::DualDVec64,
+    pub residual_func:
+        Box<dyn Fn(&Vec<na::DVector<num_dual::DualDVec64>>) -> na::DVector<num_dual::DualDVec64>>,
 }
+
 // impl ResidualBlock {}
 
 // trait Factor {

@@ -84,7 +84,6 @@ fn main() {
     let param = vec![na::dvector![x0, y0, z0]];
     let a = cost_function_dyn(&param);
     println!("{}", a[1].eps.clone().unwrap_generic(Dyn(3), Const::<1>));
-    // let rr = problem::ResidualBlock{dim_residual:10, residual_row_start_idx:1, variable_key_list: vec!["aaa".to_string()]};
     // let mut x1 = Matrix1x1d::new(0.2);
     // let mut aa = HashMap::<u32, u16>::new();
     // aa.insert(1, 1);
