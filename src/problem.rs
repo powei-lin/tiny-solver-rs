@@ -1,3 +1,5 @@
+use num_dual;
+
 extern crate nalgebra as na;
 // use std::collections::HashMap;
 pub struct Problem {
@@ -8,12 +10,13 @@ pub struct Problem {
     // col_idx_to_variable_dict: HashMap<usize, usize>,
 }
 
-struct ResidualBlock {
-    dim_residual: usize,
-    residual_row_start_idx: usize,
-    variable_key_list: Vec<String>,
+pub struct ResidualBlock {
+    pub dim_residual: usize,
+    pub residual_row_start_idx: usize,
+    pub variable_key_list: Vec<String>,
+    // residual_func: dyn FnOnce(Vec<na::DVector<num_dual::DualDVec64>>) -> num_dual::DualDVec64,
 }
-impl ResidualBlock {}
+// impl ResidualBlock {}
 
 // trait Factor {
 // fn cost_function(

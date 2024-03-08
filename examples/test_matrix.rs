@@ -2,6 +2,7 @@ use core::num;
 use num_dual;
 use std::ops::Mul;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use tiny_solver::problem;
 
 extern crate nalgebra as na;
 use na::{Const, Dyn, Vector};
@@ -30,13 +31,19 @@ fn cost_function(
 }
 
 fn cost_function_dyn(
-    params: na::DVector<num_dual::DualDVec64>,
+    params: &Vec<na::DVector<num_dual::DualDVec64>>,
 ) -> na::DVector<num_dual::DualDVec64> {
-    let x = params[0].clone();
-    let y = params[1].clone();
-    let z = params[2].clone();
+    let x = &params[0][0];
+    let y = &params[0][1];
+    let z = &params[0][2];
     return na::dvector![x + y.clone().mul(2.0) + z.clone().mul(4.0), y * z];
 }
+
+// pub trait AutoJacobian {
+//     fn residual_func(params: na::DVector<num_dual::DualDVec64>) -> na::DVector<num_dual::DualDVec64>;
+//     fn jacobian()
+// }
+
 fn main() {
     println!("hello");
     let mut x0 = Matrix3x1d::new(0.76026643, -30.01799744, 0.55192142);
@@ -62,14 +69,22 @@ fn main() {
 
     let a = cost_function(na::SVector::from([x, y, z]), na::SVector::from([a]));
     println!("{}", a[1].eps.unwrap_generic(Const::<4>, Const::<1>));
-    let x0 =
-        num_dual::DualDVec64::new(1.2, num_dual::Derivative::some(na::dvector![1.0, 0.0, 0.0]));
-    let y0 =
-        num_dual::DualDVec64::new(1.2, num_dual::Derivative::some(na::dvector![0.0, 1.0, 0.0]));
-    let z0 =
-        num_dual::DualDVec64::new(1.2, num_dual::Derivative::some(na::dvector![0.0, 0.0, 1.0]));
-    let a = cost_function_dyn(na::dvector![x0, y0, z0]);
+    let x0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![1.0, 0.0, 0.0, 1.0]),
+    );
+    let y0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![0.0, 1.0, 0.0, 0.0]),
+    );
+    let z0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![0.0, 0.0, 1.0, 0.0]),
+    );
+    let param = vec![na::dvector![x0, y0, z0]];
+    let a = cost_function_dyn(&param);
     println!("{}", a[1].eps.clone().unwrap_generic(Dyn(3), Const::<1>));
+    // let rr = problem::ResidualBlock{dim_residual:10, residual_row_start_idx:1, variable_key_list: vec!["aaa".to_string()]};
     // let mut x1 = Matrix1x1d::new(0.2);
     // let mut aa = HashMap::<u32, u16>::new();
     // aa.insert(1, 1);
