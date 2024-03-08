@@ -2,6 +2,7 @@ use std::ops::Mul;
 use std::vec;
 
 extern crate nalgebra as na;
+use na::{Const, Dyn};
 use tiny_solver::problem;
 
 fn cost_function_dyn(
@@ -21,4 +22,19 @@ fn main() {
         variable_key_list: vec!["aa".to_string()],
         residual_func: Box::new(cost_function_dyn),
     };
+    let x0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![1.0, 0.0, 0.0, 1.0]),
+    );
+    let y0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![0.0, 1.0, 0.0, 0.0]),
+    );
+    let z0 = num_dual::DualDVec64::new(
+        1.2,
+        num_dual::Derivative::some(na::dvector![0.0, 0.0, 1.0, 0.0]),
+    );
+    let param = vec![na::dvector![x0, y0, z0]];
+    let a = (rsb.residual_func)(&param);
+    println!("{}", a[1].eps.clone().unwrap_generic(Dyn(3), Const::<1>));
 }
