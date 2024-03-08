@@ -17,6 +17,16 @@ pub struct ResidualBlock {
     pub residual_func:
         Box<dyn Fn(&Vec<na::DVector<num_dual::DualDVec64>>) -> na::DVector<num_dual::DualDVec64>>,
 }
+impl ResidualBlock {
+    pub fn jacobian(self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
+        let dim_variable = params.iter().fold(0, |acc, x| acc + x.shape().0);
+        println!("dim_variable {}", dim_variable);
+        (
+            na::DVector::<f64>::zeros(self.dim_residual),
+            na::DMatrix::<f64>::zeros(self.dim_residual, self.dim_residual),
+        )
+    }
+}
 
 // impl ResidualBlock {}
 

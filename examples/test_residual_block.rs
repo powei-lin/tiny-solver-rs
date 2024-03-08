@@ -17,7 +17,7 @@ fn cost_function_dyn(
 fn main() {
     println!("rs block");
     let rsb = problem::ResidualBlock {
-        dim_residual: 2,
+        dim_residual: 5,
         residual_row_start_idx: 0,
         variable_key_list: vec!["aa".to_string()],
         residual_func: Box::new(cost_function_dyn),
@@ -37,4 +37,6 @@ fn main() {
     let param = vec![na::dvector![x0, y0, z0]];
     let a = (rsb.residual_func)(&param);
     println!("{}", a[1].eps.clone().unwrap_generic(Dyn(3), Const::<1>));
+    let (r, j) = rsb.jacobian(&vec![na::dvector![1.0], na::dvector![1.0, 1.0]]);
+    println!("{},{}", r, j);
 }
