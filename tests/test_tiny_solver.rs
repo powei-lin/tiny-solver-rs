@@ -20,6 +20,6 @@ impl TinySolver<3, 2> for TestProblem {
 fn test_residual() {
     let xvec = na::SVector::from([5.0, 3.0, 2.0]);
     let residual = TestProblem::cost_function(xvec.map(num_dual::DualVec::from_re));
-    assert_eq!(residual[0].re,  16.143546925072584);
-    assert_eq!(residual[1].re,  6.0);
+    assert_eq!(residual[0].re, 16.143546925072584);
+    assert_eq!(residual[1].re, 6.0);
 }

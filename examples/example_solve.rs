@@ -2,7 +2,6 @@ use std::ops::Mul;
 
 use tiny_solver::TinySolver;
 
-
 pub type Matrix3x1d = nalgebra::SMatrix<f64, 3, 1>;
 pub struct ExampleStatic {}
 
@@ -17,7 +16,6 @@ impl TinySolver<3, 2> for ExampleStatic {
     }
 }
 fn main() {
-
     // Example usage
     let mut x0 = Matrix3x1d::new(0.76026643, -30.01799744, 0.55192142);
     let result = ExampleStatic::solve_inplace(&mut x0);
