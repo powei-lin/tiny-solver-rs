@@ -1,10 +1,11 @@
-use std::ops::Mul;
 use std::vec;
+use std::{collections::HashMap, ops::Mul};
 
 extern crate nalgebra as na;
 use na::{Const, Dyn};
 use num_dual::{DualDVec64, DualVec};
-use tiny_solver::{problem, residual_block};
+use tiny_solver::gauss_newton_optimizer::GaussNewtonOptimizer;
+use tiny_solver::{gauss_newton_optimizer, optimizer::Optimizer, problem, residual_block};
 
 fn cost_function_dyn(
     params: &Vec<na::DVector<num_dual::DualDVec64>>,
@@ -38,6 +39,18 @@ fn main() {
     // let (r, j) = rsb.jacobian(&vec![na::dvector![1.0], na::dvector![-2.0, 3.0]]);
     // println!("{},{}", r, j);
     let mut problem = problem::Problem::new();
-    problem.add_residual_block(2, vec![("abc".to_string(), 1)], Box::new(cost_function_dyn));
-    println!("{}", problem.total_residual_dimension);
+    problem.add_residual_block(
+        2,
+        vec![("x".to_string(), 1), ("yz".to_string(), 2)],
+        Box::new(cost_function_dyn),
+    );
+    let initial_values = HashMap::from([
+        ("x".to_string(), na::dvector![1.0]),
+        ("yz".to_string(), na::dvector![-2.0, 3.0]),
+    ]);
+    let gn = GaussNewtonOptimizer {};
+    let result = gn.optimize(&problem, &initial_values);
+    for k in result {
+        println!("{} {}", k.0, k.1);
+    }
 }
