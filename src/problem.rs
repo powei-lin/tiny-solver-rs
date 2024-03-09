@@ -1,3 +1,4 @@
+use na::Dyn;
 use num_dual;
 
 extern crate nalgebra as na;
@@ -40,16 +41,15 @@ impl ResidualBlock {
                 )
             })
             .collect();
-        println!("{:?}", params_with_dual);
-        // params.iter().enumerate()
-        let x0 = num_dual::DualDVec64::new(
-            1.2,
-            num_dual::Derivative::some(na::dvector![1.0, 0.0, 0.0, 1.0]),
-        );
-        (
-            na::DVector::<f64>::zeros(self.dim_residual),
-            na::DMatrix::<f64>::zeros(self.dim_residual, dim_variable),
-        )
+        let residual_with_jacobian = (self.residual_func)(&params_with_dual);
+        let residual = residual_with_jacobian.map(|x| x.re);
+        let jacobian = residual_with_jacobian
+            .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
+        let jacobian =
+            na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
+                jacobian[r][c]
+            });
+        (residual, jacobian)
     }
 }
 
