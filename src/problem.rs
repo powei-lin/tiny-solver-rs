@@ -60,4 +60,45 @@ impl Problem {
         }
         return combined_variables;
     }
+    pub fn compute_residual_and_jacobian(
+        &self,
+        variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+    ) -> (na::DVector<f64>, na::DMatrix<f64>) {
+        let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
+        // TODO sparse
+        let mut total_jacobian =
+            na::DMatrix::<f64>::zeros(self.total_residual_dimension, self.total_variable_dimension);
+        for residual_block in &self.residual_blocks {
+            let mut params = Vec::<na::DVector<f64>>::new();
+            let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
+            let mut count_variable_local_idx: usize = 0;
+            for vk in &residual_block.variable_key_list {
+                if let Some(param) = variable_key_value_map.get(vk) {
+                    params.push(param.clone());
+                    variable_local_idx_size_list.push((count_variable_local_idx, param.shape().0));
+                    count_variable_local_idx += param.shape().0;
+                };
+            }
+            let (res, jac) = residual_block.jacobian(&params);
+            total_residual
+                .rows_mut(
+                    residual_block.residual_row_start_idx,
+                    residual_block.dim_residual,
+                )
+                .copy_from(&res);
+            for (i, vk) in residual_block.variable_key_list.iter().enumerate() {
+                if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(vk) {
+                    let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
+                    let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
+                    total_jacobian
+                        .view_mut(
+                            (residual_block.residual_row_start_idx, *variable_global_idx),
+                            variable_jac.shape(),
+                        )
+                        .copy_from(&variable_jac);
+                }
+            }
+        }
+        (total_residual, total_jacobian)
+    }
 }
