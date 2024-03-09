@@ -49,7 +49,7 @@ fn main() {
         ("yz".to_string(), na::dvector![-2.0, 3.0]),
     ]);
     let gn = GaussNewtonOptimizer {};
-    let result = gn.optimize(&problem, &initial_values);
+    let result = gn.optimize(problem, &initial_values);
     for k in result {
         println!("{} {}", k.0, k.1);
     }

@@ -37,11 +37,27 @@ impl Problem {
                 .collect(),
             residual_func: residual_func,
         });
-        for (key, size) in variable_key_size_list {
+        for (key, variable_dimesion) in variable_key_size_list {
             if !self.variable_name_to_col_idx_dict.contains_key(&key) {
-                self.variable_name_to_col_idx_dict.insert(key, size);
+                self.variable_name_to_col_idx_dict
+                    .insert(key, self.total_variable_dimension);
+                self.total_variable_dimension += variable_dimesion;
             }
         }
         self.total_residual_dimension += dim_residual;
+    }
+    pub fn combine_variables(
+        self,
+        variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+    ) -> na::DVector<f64> {
+        let mut combined_variables = na::DVector::<f64>::zeros(self.total_variable_dimension);
+        for (k, v) in variable_key_value_map {
+            if let Some(col_idx) = self.variable_name_to_col_idx_dict.get(k) {
+                combined_variables
+                    .rows_mut(*col_idx, v.shape().0)
+                    .copy_from(v);
+            };
+        }
+        return combined_variables;
     }
 }
