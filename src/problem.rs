@@ -4,11 +4,23 @@ use num_dual;
 extern crate nalgebra as na;
 // use std::collections::HashMap;
 pub struct Problem {
-    _dim_variable: usize,
-    _dim_residual: usize,
-    // residual_blocks: Vec<ResidualBlock>,
+    pub _dim_variable: usize,
+    pub _dim_residual: usize,
+    residual_blocks: Vec<ResidualBlock>,
     // variable_addr_to_col_idx_dict: HashMap<usize, usize>,
     // col_idx_to_variable_dict: HashMap<usize, usize>,
+}
+impl Problem {
+    pub fn new() -> Problem {
+        Problem {
+            _dim_variable: 0,
+            _dim_residual: 0,
+            residual_blocks: Vec::<ResidualBlock>::new(),
+        }
+    }
+    pub fn add_residual_block(&mut self, residual_block: &ResidualBlock) {
+        self._dim_residual += residual_block.dim_residual;
+    }
 }
 
 pub struct ResidualBlock {
@@ -52,14 +64,6 @@ impl ResidualBlock {
         (residual, jacobian)
     }
 }
-
-// impl ResidualBlock {}
-
-// trait Factor {
-// fn cost_function(
-//     _params: na::SVector<num_dual::DualSVec64<NUM_PARAMETERS>, NUM_PARAMETERS>,
-// ) -> na::SVector<num_dual::DualSVec64<NUM_PARAMETERS>, NUM_RESIDUALS>
-// }
 
 fn get_variable_rows(variable_rows: &[usize]) -> Vec<Vec<usize>> {
     let mut result = Vec::new();

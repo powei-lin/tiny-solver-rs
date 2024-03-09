@@ -12,12 +12,7 @@ fn cost_function_dyn(
     let x = &params[0][0];
     let y = &params[1][0];
     let z = &params[1][1];
-    return na::dvector![
-        x + y.clone().mul(2.0) + z.clone().mul(4.0),
-        y * z,
-        z.clone(),
-        z.clone()
-    ];
+    return na::dvector![x + y.clone().mul(2.0) + z.clone().mul(4.0), y * z];
 }
 
 fn rows(aa: &Vec<i32>) -> Vec<Vec<i32>> {
@@ -35,26 +30,14 @@ fn rows(aa: &Vec<i32>) -> Vec<Vec<i32>> {
 fn main() {
     println!("rs block");
     let rsb = problem::ResidualBlock {
-        dim_residual: 4,
+        dim_residual: 2,
         residual_row_start_idx: 0,
         variable_key_list: vec!["aa".to_string()],
         residual_func: Box::new(cost_function_dyn),
     };
-    // let x0 = num_dual::DualDVec64::new(
-    //     1.2,
-    //     num_dual::Derivative::some(na::dvector![1.0, 0.0, 0.0, 1.0]),
-    // );
-    // let y0 = num_dual::DualDVec64::new(
-    //     1.2,
-    //     num_dual::Derivative::some(na::dvector![0.0, 1.0, 0.0, 0.0]),
-    // );
-    // let z0 = num_dual::DualDVec64::new(
-    //     1.2,
-    //     num_dual::Derivative::some(na::dvector![0.0, 0.0, 1.0, 0.0]),
-    // );
-    // let param = vec![na::dvector![x0, y0, z0]];
-    // let a = (rsb.residual_func)(&param);
-    // println!("{}", a[1].eps.clone().unwrap_generic(Dyn(3), Const::<1>));
-    let (r, j) = rsb.jacobian(&vec![na::dvector![1.0], na::dvector![2.0, 3.0]]);
-    println!("{},{}", r, j);
+    // let (r, j) = rsb.jacobian(&vec![na::dvector![1.0], na::dvector![-2.0, 3.0]]);
+    // println!("{},{}", r, j);
+    let mut problem = problem::Problem::new();
+    problem.add_residual_block(&rsb);
+    println!("{}", problem._dim_residual);
 }
