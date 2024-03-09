@@ -4,7 +4,7 @@ use std::vec;
 extern crate nalgebra as na;
 use na::{Const, Dyn};
 use num_dual::{DualDVec64, DualVec};
-use tiny_solver::problem;
+use tiny_solver::{problem, residual_block};
 
 fn cost_function_dyn(
     params: &Vec<na::DVector<num_dual::DualDVec64>>,
@@ -29,7 +29,7 @@ fn rows(aa: &Vec<i32>) -> Vec<Vec<i32>> {
 
 fn main() {
     println!("rs block");
-    let rsb = problem::ResidualBlock {
+    let rsb = residual_block::ResidualBlock {
         dim_residual: 2,
         residual_row_start_idx: 0,
         variable_key_list: vec!["aa".to_string()],
@@ -38,6 +38,6 @@ fn main() {
     // let (r, j) = rsb.jacobian(&vec![na::dvector![1.0], na::dvector![-2.0, 3.0]]);
     // println!("{},{}", r, j);
     let mut problem = problem::Problem::new();
-    problem.add_residual_block(&rsb);
-    println!("{}", problem._dim_residual);
+    problem.add_residual_block(2, vec![("abc".to_string(), 1)], Box::new(cost_function_dyn));
+    println!("{}", problem.total_residual_dimension);
 }
