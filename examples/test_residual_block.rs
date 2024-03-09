@@ -45,8 +45,8 @@ fn main() {
         Box::new(cost_function_dyn),
     );
     let initial_values = HashMap::from([
-        ("x".to_string(), na::dvector![1.0]),
-        ("yz".to_string(), na::dvector![-2.0, 3.0]),
+        ("x".to_string(), na::dvector![0.76026643]),
+        ("yz".to_string(), na::dvector![-30.01799744, 0.55192142]),
     ]);
     let gn = GaussNewtonOptimizer {};
     let result = gn.optimize(problem, &initial_values);
