@@ -17,18 +17,15 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
-            // println!("residual{}, jac{:?}", residuals, jac);
             let b = jac.transpose().mul(-residuals);
             let hessian = jac.transpose().mul(jac);
-            // let dx = hessian.qr().solve(&b).expect("msg");
+            println!("matrix size {}x{}", hessian.nrows(), hessian.ncols());
             let start = Instant::now();
             let cholesky = CscCholesky::factor(&hessian).unwrap();
             let dx = na::DVector::from(cholesky.solve(&b).fixed_columns(0));
             let duration = start.elapsed();
-            println!("Time elapsed in expensive_function() is: {:?}", duration);
-            // println!("dx {dx}");
-            // let dx = hessian.lu().solve(&b).expect("msg");
-            // let dx = na::linalg::SVD::new(hessian).solve(&b).unwrap();
+            println!("Time elapsed in solve() is: {:?}", duration);
+
             if dx.norm() < 1e-16 {
                 println!("grad too low");
                 break;
