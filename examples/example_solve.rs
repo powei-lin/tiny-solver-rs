@@ -16,6 +16,7 @@ impl TinySolver<3, 2> for ExampleStatic {
     }
 }
 fn main() {
+    // Example usage
     let mut x0 = Matrix3x1d::new(0.76026643, -30.01799744, 0.55192142);
     let result = ExampleStatic::solve_inplace(&mut x0);
     println!("auto grad: {}", x0);
