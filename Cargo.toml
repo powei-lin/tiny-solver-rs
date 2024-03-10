@@ -14,3 +14,6 @@ num-traits = "0.2.18"
 [[example]]
 name = "example_solve"
 crate-type = ["bin"]
+
+[dev-dependencies]
+plotters = "0.3.5"

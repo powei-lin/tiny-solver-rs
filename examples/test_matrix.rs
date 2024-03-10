@@ -1,8 +1,6 @@
-use core::num;
 use num_dual;
+use std::cell::RefCell;
 use std::ops::Mul;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use tiny_solver::problem;
 
 extern crate nalgebra as na;
 use na::{Const, Dyn, Vector};
