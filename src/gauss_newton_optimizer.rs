@@ -15,7 +15,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
-            println!("residual{}, jac{:?}", residuals, jac);
+            // println!("residual{}, jac{:?}", residuals, jac);
             let b = jac.transpose().mul(-residuals);
             let hessian = jac.transpose().mul(jac);
             // let dx = hessian.qr().solve(&b).expect("msg");
