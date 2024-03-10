@@ -2,6 +2,8 @@ use na::Dyn;
 use num_dual;
 
 extern crate nalgebra as na;
+use faer::sparse::{SparseColMat, SparseColMatMut};
+use faer_ext::IntoFaer;
 use nalgebra_sparse::{coo::CooMatrix, csc::CscMatrix};
 
 use crate::residual_block::{self, Factor};
@@ -63,13 +65,11 @@ impl Problem {
     pub fn compute_residual_and_jacobian(
         &self,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
-    ) -> (na::DVector<f64>, CscMatrix<f64>) {
+    ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
-        // TODO sparse
-        // let mut total_jacobian =
-        //     na::DMatrix::<f64>::zeros(self.total_residual_dimension, self.total_variable_dimension);
         let mut total_jacobian =
             CooMatrix::new(self.total_residual_dimension, self.total_variable_dimension);
+        let mut jj = Vec::<(usize, usize, f64)>::new();
 
         for residual_block in &self.residual_blocks {
             let mut params = Vec::<na::DVector<f64>>::new();
@@ -98,14 +98,26 @@ impl Problem {
                         *variable_global_idx,
                         &variable_jac,
                     );
-                    // .view_mut(
-                    //     (residual_block.residual_row_start_idx, *variable_global_idx),
-                    //     variable_jac.shape(),
-                    // )
-                    // .copy_from(&variable_jac);
+                    for row_idx in (0..jac.shape().0) {
+                        for col_idx in (0..var_size) {
+                            let globle_row_idx = residual_block.residual_row_start_idx + row_idx;
+                            let globle_col_idx = variable_global_idx + col_idx;
+                            let value = variable_jac[(row_idx, col_idx)];
+                            jj.push((globle_row_idx, globle_col_idx, value));
+                        }
+                    }
                 }
             }
         }
-        (total_residual, CscMatrix::from(&total_jacobian))
+        // total_jacobian.into_faer();
+        // let rs = faer::mat![[15.0], [-3.0], [33.0f64]];
+        let rs = total_residual.view_range(.., ..).into_faer().to_owned();
+        let sp = SparseColMat::try_new_from_triplets(
+            self.total_residual_dimension,
+            self.total_variable_dimension,
+            &jj,
+        )
+        .unwrap();
+        (rs, sp)
     }
 }

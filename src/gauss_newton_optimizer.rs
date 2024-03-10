@@ -3,7 +3,8 @@ use std::time::{Duration, Instant};
 use crate::optimizer;
 use std::ops::Mul;
 extern crate nalgebra as na;
-use nalgebra_sparse::factorization::CscCholesky;
+use faer::solvers::SpSolverLstsq;
+use faer_ext::IntoNalgebra;
 pub struct GaussNewtonOptimizer {}
 impl optimizer::Optimizer for GaussNewtonOptimizer {
     fn optimize(
@@ -17,20 +18,21 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
-            let b = jac.transpose().mul(-residuals);
-            let hessian = jac.transpose().mul(jac);
-            println!("matrix size {}x{}", hessian.nrows(), hessian.ncols());
+            // let b = jac.transpose().mul(-residuals);
+            // let hessian = (&jac.r).mul(&jac);
+            // println!("matrix size {}x{}", hessian.nrows(), hessian.ncols());
             let start = Instant::now();
-            let cholesky = CscCholesky::factor(&hessian).unwrap();
-            let dx = na::DVector::from(cholesky.solve(&b).fixed_columns(0));
+            let qr = jac.sp_qr().unwrap();
+            let dx = qr.solve_lstsq(-residuals);
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 
-            if dx.norm() < 1e-16 {
+            if dx.norm_l1() < 1e-16 {
                 println!("grad too low");
                 break;
             }
-            self.apply_dx(&dx, &mut params, &problem.variable_name_to_col_idx_dict);
+            let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+            self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
             // params += dx
             // problem.write_back_variables(params)
         }
