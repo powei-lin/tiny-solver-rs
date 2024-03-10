@@ -67,8 +67,6 @@ impl Problem {
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
-        let mut total_jacobian =
-            CooMatrix::new(self.total_residual_dimension, self.total_variable_dimension);
         let mut jj = Vec::<(usize, usize, f64)>::new();
 
         for residual_block in &self.residual_blocks {
@@ -93,11 +91,6 @@ impl Problem {
                 if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(vk) {
                     let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                     let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
-                    total_jacobian.push_matrix(
-                        residual_block.residual_row_start_idx,
-                        *variable_global_idx,
-                        &variable_jac,
-                    );
                     for row_idx in (0..jac.shape().0) {
                         for col_idx in (0..var_size) {
                             let globle_row_idx = residual_block.residual_row_start_idx + row_idx;
