@@ -1,10 +1,16 @@
 extern crate nalgebra as na;
+
+pub trait Factor {
+    fn residual_func(
+        &self,
+        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+    ) -> na::DVector<num_dual::DualDVec64>;
+}
 pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
-    pub residual_func:
-        Box<dyn Fn(&Vec<na::DVector<num_dual::DualDVec64>>) -> na::DVector<num_dual::DualDVec64>>,
+    pub factor: Box<dyn Factor>,
 }
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
@@ -29,7 +35,7 @@ impl ResidualBlock {
                 )
             })
             .collect();
-        let residual_with_jacobian = (self.residual_func)(&params_with_dual);
+        let residual_with_jacobian = self.factor.residual_func(&params_with_dual);
         let residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));

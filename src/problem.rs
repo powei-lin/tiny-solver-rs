@@ -4,7 +4,7 @@ use num_dual;
 extern crate nalgebra as na;
 use nalgebra_sparse::{coo::CooMatrix, csc::CscMatrix};
 
-use crate::residual_block;
+use crate::residual_block::{self, Factor};
 use std::collections::HashMap;
 pub struct Problem {
     pub total_variable_dimension: usize,
@@ -26,9 +26,7 @@ impl Problem {
         &mut self,
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
-        residual_func: Box<
-            dyn Fn(&Vec<na::DVector<num_dual::DualDVec64>>) -> na::DVector<num_dual::DualDVec64>,
-        >,
+        factor: Box<dyn Factor>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
             dim_residual: dim_residual,
@@ -37,7 +35,7 @@ impl Problem {
                 .iter()
                 .map(|(x, _)| x.to_string())
                 .collect(),
-            residual_func: residual_func,
+            factor: factor,
         });
         for (key, variable_dimesion) in variable_key_size_list {
             if !self.variable_name_to_col_idx_dict.contains_key(&key) {
