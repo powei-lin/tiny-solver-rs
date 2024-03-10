@@ -17,7 +17,8 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             println!("residual{}, jac{}", residuals, jac);
             let b = jac.transpose().mul(-residuals);
             let hessian = jac.transpose().mul(jac);
-            let dx = hessian.qr().solve(&b).expect("msg");
+            // let dx = hessian.qr().solve(&b).expect("msg");
+            let dx = hessian.lu().solve(&b).expect("msg");
             // let dx = na::linalg::SVD::new(hessian).solve(&b).unwrap();
             if dx.norm() < 1e-16 {
                 println!("grad too low");
