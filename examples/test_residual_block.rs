@@ -23,7 +23,7 @@ fn cost_function_dyn2(
     params: &Vec<na::DVector<num_dual::DualDVec64>>,
 ) -> na::DVector<num_dual::DualDVec64> {
     let x = &params[0][0];
-    return na::dvector![x.clone().sub(1.0)];
+    return na::dvector![x.clone().sub(5.0)];
 }
 fn rows(aa: &Vec<i32>) -> Vec<Vec<i32>> {
     let mut result = Vec::new();
