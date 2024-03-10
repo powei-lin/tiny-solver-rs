@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::optimizer;
 use std::ops::Mul;
 extern crate nalgebra as na;
@@ -19,9 +21,11 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             let b = jac.transpose().mul(-residuals);
             let hessian = jac.transpose().mul(jac);
             // let dx = hessian.qr().solve(&b).expect("msg");
+            let start = Instant::now();
             let cholesky = CscCholesky::factor(&hessian).unwrap();
-            // let l = cholesky.take_l();
             let dx = na::DVector::from(cholesky.solve(&b).fixed_columns(0));
+            let duration = start.elapsed();
+            println!("Time elapsed in expensive_function() is: {:?}", duration);
             // println!("dx {dx}");
             // let dx = hessian.lu().solve(&b).expect("msg");
             // let dx = na::linalg::SVD::new(hessian).solve(&b).unwrap();

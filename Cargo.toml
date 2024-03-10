@@ -17,3 +17,6 @@ crate-type = ["bin"]
 
 [dev-dependencies]
 plotters = "0.3.5"
+
+# [profile.release]
+# debug = true
