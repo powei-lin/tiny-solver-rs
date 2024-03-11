@@ -67,7 +67,7 @@ impl Problem {
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
-        let mut jj = Vec::<(usize, usize, f64)>::new();
+        let mut jacobian_list = Vec::<(usize, usize, f64)>::new();
 
         for residual_block in &self.residual_blocks {
             let mut params = Vec::<na::DVector<f64>>::new();
@@ -91,26 +91,24 @@ impl Problem {
                 if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(vk) {
                     let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                     let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
-                    for row_idx in (0..jac.shape().0) {
-                        for col_idx in (0..var_size) {
+                    for row_idx in 0..jac.shape().0 {
+                        for col_idx in 0..var_size {
                             let globle_row_idx = residual_block.residual_row_start_idx + row_idx;
                             let globle_col_idx = variable_global_idx + col_idx;
                             let value = variable_jac[(row_idx, col_idx)];
-                            jj.push((globle_row_idx, globle_col_idx, value));
+                            jacobian_list.push((globle_row_idx, globle_col_idx, value));
                         }
                     }
                 }
             }
         }
-        // total_jacobian.into_faer();
-        // let rs = faer::mat![[15.0], [-3.0], [33.0f64]];
-        let rs = total_residual.view_range(.., ..).into_faer().to_owned();
-        let sp = SparseColMat::try_new_from_triplets(
+        let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
+        let jacobian_faer = SparseColMat::try_new_from_triplets(
             self.total_residual_dimension,
             self.total_variable_dimension,
-            &jj,
+            &jacobian_list,
         )
         .unwrap();
-        (rs, sp)
+        (residual_faer, jacobian_faer)
     }
 }
