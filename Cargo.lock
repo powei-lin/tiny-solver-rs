@@ -1484,7 +1484,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tiny_solver"
+name = "tiny-solver"
 version = "0.2.0"
 dependencies = [
  "faer",

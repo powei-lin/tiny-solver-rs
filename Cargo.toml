@@ -1,5 +1,5 @@
 [package]
-name = "tiny_solver"
+name = "tiny-solver"
 version = "0.2.0"
 edition = "2021"
 
@@ -26,4 +26,4 @@ opt-level = 3
 
 [lib]
 name = "tiny_solver"
-crate-type = ["cdylib"]
+# crate-type = ["cdylib"]
