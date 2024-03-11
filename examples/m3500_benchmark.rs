@@ -1,3 +1,4 @@
+use std::time::Instant;
 extern crate nalgebra as na;
 use plotters::prelude::*;
 
@@ -115,8 +116,11 @@ fn main() {
                 .map(|(x, y)| Circle::new((*x, *y), 2, GREEN.filled())),
         )
         .unwrap();
+    let start = Instant::now();
     let gn = gauss_newton_optimizer::GaussNewtonOptimizer {};
     let result = gn.optimize(problem, &init_values);
+    let duration = start.elapsed();
+    println!("Time elapsed in total is: {:?}", duration);
     let result_points: Vec<(f64, f64)> = result.iter().map(|(_, v)| (v[1], v[2])).collect();
     scatter_ctx
         .draw_series(
