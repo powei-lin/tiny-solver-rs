@@ -1,4 +1,4 @@
-extern crate nalgebra as na;
+use nalgebra as na;
 use num_dual;
 use std::ops::Mul;
 

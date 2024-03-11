@@ -1,8 +1,9 @@
-use crate::problem;
 use std::collections::HashMap;
 use std::ops::Add;
 
-extern crate nalgebra as na;
+use nalgebra as na;
+
+use crate::problem;
 
 pub trait Optimizer {
     fn optimize(

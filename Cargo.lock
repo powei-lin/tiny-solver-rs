@@ -825,16 +825,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nalgebra-sparse"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b113b3101e137b3d0ef20b76b7579cde88e3d1f2f64993d4d6a49f232055cc9"
-dependencies = [
- "nalgebra",
- "num-traits",
-]
-
-[[package]]
 name = "npyz"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1325,12 +1315,11 @@ dependencies = [
 
 [[package]]
 name = "tiny-solver"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "faer",
  "faer-ext",
  "nalgebra",
- "nalgebra-sparse",
  "num-dual",
  "num-traits",
  "plotters",

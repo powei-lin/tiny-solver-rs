@@ -1,4 +1,4 @@
-extern crate nalgebra as na;
+use nalgebra as na;
 
 pub trait Factor {
     fn residual_func(

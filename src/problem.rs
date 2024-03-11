@@ -1,13 +1,10 @@
-use na::Dyn;
-use num_dual;
+use std::collections::HashMap;
 
-extern crate nalgebra as na;
-use faer::sparse::{SparseColMat, SparseColMatMut};
+use faer::sparse::SparseColMat;
 use faer_ext::IntoFaer;
-use nalgebra_sparse::{coo::CooMatrix, csc::CscMatrix};
+use nalgebra as na;
 
 use crate::residual_block::{self, Factor};
-use std::collections::HashMap;
 pub struct Problem {
     pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,

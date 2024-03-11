@@ -2,9 +2,8 @@ use std::time::Instant;
 extern crate nalgebra as na;
 use plotters::prelude::*;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::time::Instant;
 use tiny_solver::{gauss_newton_optimizer, optimizer::Optimizer, problem, residual_block};
 
 #[derive(Default)]
@@ -117,7 +116,6 @@ fn main() {
                 .map(|(x, y)| Circle::new((*x, *y), 2, GREEN.filled())),
         )
         .unwrap();
-    let start = Instant::now();
     let gn = gauss_newton_optimizer::GaussNewtonOptimizer {};
     let start = Instant::now();
     let result = gn.optimize(problem, &init_values);
