@@ -18,9 +18,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
-            // let b = jac.transpose().mul(-residuals);
-            // let hessian = (&jac.r).mul(&jac);
-            // println!("matrix size {}x{}", hessian.nrows(), hessian.ncols());
             let start = Instant::now();
             let hessian = jac
                 .as_ref()
@@ -41,8 +38,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             }
             let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
             self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
-            // params += dx
-            // problem.write_back_variables(params)
         }
         return params;
     }

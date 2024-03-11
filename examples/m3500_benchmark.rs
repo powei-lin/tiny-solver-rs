@@ -4,6 +4,7 @@ use plotters::prelude::*;
 
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
+use std::time::Instant;
 use tiny_solver::{gauss_newton_optimizer, optimizer::Optimizer, problem, residual_block};
 
 #[derive(Default)]
@@ -118,6 +119,7 @@ fn main() {
         .unwrap();
     let start = Instant::now();
     let gn = gauss_newton_optimizer::GaussNewtonOptimizer {};
+    let start = Instant::now();
     let result = gn.optimize(problem, &init_values);
     let duration = start.elapsed();
     println!("Time elapsed in total is: {:?}", duration);
