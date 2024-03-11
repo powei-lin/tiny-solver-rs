@@ -1,3 +1,4 @@
+use std::time::Instant;
 extern crate nalgebra as na;
 use plotters::prelude::*;
 
@@ -116,6 +117,7 @@ fn main() {
                 .map(|(x, y)| Circle::new((*x, *y), 2, GREEN.filled())),
         )
         .unwrap();
+    let start = Instant::now();
     let gn = gauss_newton_optimizer::GaussNewtonOptimizer {};
     let start = Instant::now();
     let result = gn.optimize(problem, &init_values);

@@ -3,8 +3,7 @@ use std::time::{Duration, Instant};
 use crate::optimizer;
 use std::ops::Mul;
 extern crate nalgebra as na;
-use faer::prelude::SpSolver;
-use faer::solvers::SpSolverLstsq;
+use faer::solvers::{SpSolver, SpSolverLstsq};
 use faer_ext::IntoNalgebra;
 pub struct GaussNewtonOptimizer {}
 impl optimizer::Optimizer for GaussNewtonOptimizer {
@@ -20,9 +19,16 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
             let start = Instant::now();
+            let hessian = jac
+                .as_ref()
+                .transpose()
+                .to_col_major()
+                .unwrap()
+                .mul(jac.as_ref());
+            let b = jac.into_transpose().mul(-residuals);
+            let dx = hessian.sp_cholesky(faer::Side::Lower).unwrap().solve(b);
             // let qr = jac.sp_qr().unwrap();
-            let qr = jac.sp_qr().unwrap();
-            let dx = qr.solve_lstsq(-residuals);
+            // let dx = qr.solve_lstsq(-residuals);
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 
