@@ -1,9 +1,6 @@
-use std::ops::Mul;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use faer::solvers::{SpSolver, SpSolverLstsq};
 use faer_ext::IntoNalgebra;
-use nalgebra as na;
 
 use crate::{linear::sparse_cholesky, optimizer};
 pub struct GaussNewtonOptimizer {}
@@ -31,6 +28,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
             self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
         }
-        return params;
+        params
     }
 }

@@ -1,5 +1,6 @@
-use faer::prelude::SpSolver;
 use std::ops::Mul;
+
+use faer::prelude::SpSolver;
 
 pub fn sparse_cholesky(
     residuals: &faer::Mat<f64>,
