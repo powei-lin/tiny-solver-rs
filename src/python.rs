@@ -4,6 +4,28 @@ use numpy::nalgebra::Matrix3;
 use numpy::{pyarray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::{exceptions::PyRuntimeError, pymodule, types::PyModule, PyResult, Python};
 
+use crate::SolverParameters;
+use nalgebra::{DVector, SVector};
+use numpy::{PyArray, PyReadonlyArrayDyn};
+use pyo3::exceptions::PyTypeError;
+use pyo3::prelude::*;
+
+#[pyclass(name = "Dual64")]
+pub struct PyDual64(SolverParameters);
+
+#[pymethods]
+impl PyDual64 {
+    #[new]
+    pub fn new() -> Self {
+        Self(SolverParameters::defualt())
+    }
+
+    #[getter]
+    pub fn get_first_derivative(&self) -> f64 {
+        1.0
+    }
+}
+
 /// Formats the sum of two numbers as string.
 #[pyfunction]
 pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
@@ -13,6 +35,8 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 /// A Python module implemented in Rust.
 #[pymodule]
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    m.add_class::<PyDual64>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
 
     #[pyfn(m)]

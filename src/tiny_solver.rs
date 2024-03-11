@@ -2,7 +2,7 @@ use nalgebra as na;
 use num_dual;
 use std::ops::Mul;
 
-struct SolverParameters {
+pub struct SolverParameters {
     gradient_threshold: f64,
     relative_step_threshold: f64,
     error_threshold: f64,
@@ -10,7 +10,7 @@ struct SolverParameters {
     max_iterations: usize,
 }
 impl SolverParameters {
-    fn defualt() -> SolverParameters {
+    pub fn defualt() -> SolverParameters {
         SolverParameters {
             gradient_threshold: 1e-16,
             relative_step_threshold: 1e-16,
