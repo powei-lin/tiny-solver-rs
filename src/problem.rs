@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use faer::sparse::SparseColMat;
 use faer_ext::IntoFaer;
 use nalgebra as na;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use crate::residual_block::{self, Factor};
 pub struct Problem {
@@ -64,10 +66,13 @@ impl Problem {
         &self,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
-        let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
-        let mut jacobian_list = Vec::<(usize, usize, f64)>::new();
+        // multi
+        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
+            self.total_residual_dimension,
+        )));
+        let jacobian_list = Arc::new(Mutex::new(Vec::<(usize, usize, f64)>::new()));
 
-        for residual_block in &self.residual_blocks {
+        self.residual_blocks.par_iter().for_each(|residual_block| {
             let mut params = Vec::<na::DVector<f64>>::new();
             let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
             let mut count_variable_local_idx: usize = 0;
@@ -79,27 +84,46 @@ impl Problem {
                 };
             }
             let (res, jac) = residual_block.jacobian(&params);
-            total_residual
-                .rows_mut(
-                    residual_block.residual_row_start_idx,
-                    residual_block.dim_residual,
-                )
-                .copy_from(&res);
+
+            {
+                let mut total_residual = total_residual.lock().unwrap();
+                total_residual
+                    .rows_mut(
+                        residual_block.residual_row_start_idx,
+                        residual_block.dim_residual,
+                    )
+                    .copy_from(&res);
+            }
+
             for (i, vk) in residual_block.variable_key_list.iter().enumerate() {
                 if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(vk) {
                     let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                     let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
+                    let mut local_jacobian_list = Vec::new();
                     for row_idx in 0..jac.shape().0 {
                         for col_idx in 0..var_size {
-                            let globle_row_idx = residual_block.residual_row_start_idx + row_idx;
-                            let globle_col_idx = variable_global_idx + col_idx;
+                            let global_row_idx = residual_block.residual_row_start_idx + row_idx;
+                            let global_col_idx = variable_global_idx + col_idx;
                             let value = variable_jac[(row_idx, col_idx)];
-                            jacobian_list.push((globle_row_idx, globle_col_idx, value));
+                            local_jacobian_list.push((global_row_idx, global_col_idx, value));
                         }
                     }
+                    let mut jacobian_list = jacobian_list.lock().unwrap();
+                    jacobian_list.extend(local_jacobian_list);
                 }
             }
-        }
+        });
+
+        let total_residual = Arc::try_unwrap(total_residual)
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        let jacobian_list = Arc::try_unwrap(jacobian_list)
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        // end
+
         let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
         let jacobian_faer = SparseColMat::try_new_from_triplets(
             self.total_residual_dimension,
