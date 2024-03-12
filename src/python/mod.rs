@@ -10,6 +10,8 @@ use numpy::{PyArray, PyReadonlyArrayDyn};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 
+mod py_factors;
+pub use py_factors::PyFactor;
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -37,6 +39,7 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
+    m.add_class::<PyFactor>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
 
     #[pyfn(m)]
