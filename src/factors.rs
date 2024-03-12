@@ -1,13 +1,18 @@
-use crate::residual_block;
 use nalgebra as na;
 
+pub trait Factor: Send + Sync {
+    fn residual_func(
+        &self,
+        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+    ) -> na::DVector<num_dual::DualDVec64>;
+}
 #[derive(Default)]
 pub struct CostFactorSE2 {
     pub dx: f64,
     pub dy: f64,
     pub dtheta: f64,
 }
-impl residual_block::Factor for CostFactorSE2 {
+impl Factor for CostFactorSE2 {
     fn residual_func(
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
@@ -40,7 +45,7 @@ impl residual_block::Factor for CostFactorSE2 {
 }
 #[derive(Default, Clone)]
 pub struct BetweenFactor {}
-impl residual_block::Factor for BetweenFactor {
+impl Factor for BetweenFactor {
     fn residual_func(
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,

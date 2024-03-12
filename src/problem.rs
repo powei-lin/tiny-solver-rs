@@ -6,7 +6,7 @@ use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
 
-use crate::residual_block::{self, Factor};
+use crate::{factors, residual_block};
 
 pub struct Problem {
     pub total_variable_dimension: usize,
@@ -29,7 +29,7 @@ impl Problem {
         &mut self,
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
-        factor: Box<dyn Factor + Send>,
+        factor: Box<dyn factors::Factor + Send>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
             dim_residual: dim_residual,

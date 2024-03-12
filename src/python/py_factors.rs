@@ -2,7 +2,7 @@ use nalgebra as na;
 use num_dual;
 use pyo3::prelude::*;
 
-use crate::{factors, residual_block::Factor};
+use crate::factors::{self, Factor};
 
 #[pyclass(name = "FactorSE2")]
 pub struct PyFactorSE2(factors::CostFactorSE2);

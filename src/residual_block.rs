@@ -1,11 +1,7 @@
 use nalgebra as na;
 
-pub trait Factor: Send + Sync {
-    fn residual_func(
-        &self,
-        params: &Vec<na::DVector<num_dual::DualDVec64>>,
-    ) -> na::DVector<num_dual::DualDVec64>;
-}
+use crate::factors::Factor;
+
 pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
