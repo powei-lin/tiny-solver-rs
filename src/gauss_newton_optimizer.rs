@@ -12,7 +12,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
     ) -> std::collections::HashMap<String, nalgebra::DVector<f64>> {
         let mut params = initial_values.clone();
 
-        for i in 0..10 {
+        for i in 0..50 {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
@@ -21,7 +21,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 
-            if dx.norm_l1() < 1e-16 {
+            if dx.norm_l1() < 1e-8 {
                 println!("grad too low");
                 break;
             }

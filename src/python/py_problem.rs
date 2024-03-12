@@ -12,6 +12,11 @@ impl PyProblem {
         Self(Problem::new())
     }
 
+    pub fn add_residual_block(&self) -> PyResult<()> {
+        println!("add residual block");
+        Ok(())
+    }
+
     #[getter]
     pub fn get_num(&self) -> PyResult<usize> {
         Ok(self.0.thread_num)

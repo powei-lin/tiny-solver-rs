@@ -14,3 +14,4 @@ c = tiny_solver.Problem()
 print(dir(c))
 c.num = 200
 print(c.num)
+c.add_residual_block()
