@@ -12,3 +12,5 @@ print(dir(b))
 print(b.dtheta)
 c = tiny_solver.Problem()
 print(dir(c))
+c.num = 200
+print(c.num)

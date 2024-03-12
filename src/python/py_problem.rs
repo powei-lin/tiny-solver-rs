@@ -12,8 +12,13 @@ impl PyProblem {
         Self(Problem::new())
     }
 
-    // #[getter]
-    // pub fn dx(&self) -> f64 {
-    //     self.0
-    // }
+    #[getter]
+    pub fn get_num(&self) -> PyResult<usize> {
+        Ok(self.0.thread_num)
+    }
+    #[setter]
+    pub fn set_num(&mut self, value: usize) -> PyResult<()> {
+        self.0.thread_num = value;
+        Ok(())
+    }
 }
