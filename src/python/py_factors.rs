@@ -2,11 +2,11 @@ use pyo3::prelude::*;
 
 use crate::factors;
 
-#[pyclass(name = "Factor")]
-pub struct PyFactor(factors::CostFactorSE2);
+#[pyclass(name = "FactorSE2")]
+pub struct PyFactorSE2(factors::CostFactorSE2);
 
 #[pymethods]
-impl PyFactor {
+impl PyFactorSE2 {
     #[new]
     pub fn new(x: f64, y: f64, theta: f64) -> Self {
         Self(factors::CostFactorSE2 {
@@ -17,7 +17,15 @@ impl PyFactor {
     }
 
     #[getter]
-    pub fn get_first_derivative(&self) -> f64 {
-        1.0
+    pub fn dx(&self) -> f64 {
+        self.0.dx
+    }
+    #[getter]
+    pub fn dy(&self) -> f64 {
+        self.0.dy
+    }
+    #[getter]
+    pub fn dtheta(&self) -> f64 {
+        self.0.dtheta
     }
 }

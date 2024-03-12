@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-pub trait Factor {
+pub trait Factor: Send + Sync {
     fn residual_func(
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
@@ -10,7 +10,7 @@ pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
-    pub factor: Box<dyn Factor>,
+    pub factor: Box<dyn Factor + Send>,
 }
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {

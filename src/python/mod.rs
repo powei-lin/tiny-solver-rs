@@ -11,7 +11,9 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 
 mod py_factors;
-pub use py_factors::PyFactor;
+mod py_problem;
+pub use py_factors::PyFactorSE2;
+pub use py_problem::PyProblem;
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -39,7 +41,8 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
-    m.add_class::<PyFactor>()?;
+    m.add_class::<PyFactorSE2>()?;
+    m.add_class::<PyProblem>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
 
     #[pyfn(m)]

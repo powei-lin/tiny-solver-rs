@@ -10,7 +10,7 @@ pub struct Problem {
     pub total_residual_dimension: usize,
     residual_blocks: Vec<residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
-    // col_idx_to_variable_dict: HashMap<usize, usize>,
+    pub thread_num: usize,
 }
 impl Problem {
     pub fn new() -> Problem {
@@ -19,13 +19,14 @@ impl Problem {
             total_residual_dimension: 0,
             residual_blocks: Vec::<residual_block::ResidualBlock>::new(),
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
+            thread_num: 1,
         }
     }
     pub fn add_residual_block(
         &mut self,
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
-        factor: Box<dyn Factor>,
+        factor: Box<dyn Factor + Send>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
             dim_residual: dim_residual,
