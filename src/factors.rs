@@ -38,7 +38,7 @@ impl residual_block::Factor for CostFactorSE2 {
         ];
     }
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BetweenFactor {}
 impl residual_block::Factor for BetweenFactor {
     fn residual_func(

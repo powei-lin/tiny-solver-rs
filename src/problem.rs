@@ -1,12 +1,13 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use faer::sparse::SparseColMat;
 use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
 
 use crate::residual_block::{self, Factor};
+
 pub struct Problem {
     pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,
