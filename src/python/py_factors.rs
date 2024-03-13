@@ -4,9 +4,6 @@ use pyo3::prelude::*;
 
 use crate::factors::{self, Factor};
 
-#[pyclass]
-pub struct DynFactor(Box<dyn Factor>);
-
 #[pyclass(name = "FactorSE2")]
 pub struct PyFactorSE2(factors::CostFactorSE2);
 

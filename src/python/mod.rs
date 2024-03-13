@@ -13,9 +13,9 @@ use pyo3::prelude::*;
 mod py_factors;
 mod py_problem;
 pub use py_factors::*;
-pub use py_problem::PyProblem;
+pub use py_problem::*;
 
-use self::factors::BetweenFactor;
+use self::factors::{BetweenFactor, Factor};
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -38,6 +38,11 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
+#[pyclass]
+pub struct DynFactor(Box<dyn Factor>);
+
+impl DynFactor {}
+
 #[pyfunction]
 pub fn te(a: &PyAny) -> PyResult<()> {
     let b: PyBetweenFactor = a.extract()?;
@@ -54,6 +59,7 @@ pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add_class::<PyFactorSE2>()?;
     m.add_class::<PyBetweenFactor>()?;
     m.add_class::<PyProblem>()?;
+    m.add_class::<PyFactor>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(te, m)?)?;
 
