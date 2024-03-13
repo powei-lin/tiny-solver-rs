@@ -6,7 +6,7 @@ pub trait Factor: Send + Sync {
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64>;
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct CostFactorSE2 {
     pub dx: f64,
     pub dy: f64,

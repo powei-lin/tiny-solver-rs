@@ -4,6 +4,9 @@ use pyo3::prelude::*;
 
 use crate::factors::{self, Factor};
 
+#[pyclass]
+pub struct DynFactor(Box<dyn Factor>);
+
 #[pyclass(name = "FactorSE2")]
 pub struct PyFactorSE2(factors::CostFactorSE2);
 
@@ -29,10 +32,6 @@ impl PyFactorSE2 {
     #[getter]
     pub fn dtheta(&self) -> f64 {
         self.0.dtheta
-    }
-
-    pub fn ttt(&self) -> PyResult<()> {
-        Ok(())
     }
 }
 
