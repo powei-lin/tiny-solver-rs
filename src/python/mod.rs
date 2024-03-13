@@ -38,11 +38,6 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
-#[pyclass]
-pub struct DynFactor(Box<dyn Factor>);
-
-impl DynFactor {}
-
 #[pyfunction]
 pub fn te(a: &PyAny) -> PyResult<()> {
     let b: PyBetweenFactor = a.extract()?;

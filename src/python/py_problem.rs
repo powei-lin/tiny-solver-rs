@@ -16,12 +16,10 @@ pub struct PyFactor(Box<dyn Factor>);
 #[pymethods]
 impl PyFactor {
     #[new]
-    pub fn new() -> PyFactor {
+    pub fn new(x: &PyAny) -> PyFactor {
+        println!("{:?}", x);
         PyFactor(Box::new(BetweenFactor {}))
     }
-    // pub fn tt(&mut self){
-    //     // self.0.
-    // }
 }
 
 #[pymethods]
