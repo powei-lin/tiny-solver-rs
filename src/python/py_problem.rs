@@ -1,5 +1,4 @@
-use pyo3::types::PyType;
-use pyo3::{prelude::*, PyTypeInfo};
+use pyo3::prelude::*;
 
 use crate::factors::*;
 use crate::problem::Problem;
@@ -46,7 +45,6 @@ impl PyProblem {
             variable_key_size_list,
             convert_pyany_to_factor(pyfactor).unwrap(),
         );
-        // Box::new(BetweenFactor {}),
 
         println!(
             "total residual {}, total keys {}",

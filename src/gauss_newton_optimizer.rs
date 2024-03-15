@@ -1,9 +1,14 @@
+use pyo3::prelude::*;
 use std::time::Instant;
 
 use faer_ext::IntoNalgebra;
 
 use crate::{linear::sparse_cholesky, optimizer};
+
+#[pyclass]
+#[derive(Debug, Clone)]
 pub struct GaussNewtonOptimizer {}
+
 impl optimizer::Optimizer for GaussNewtonOptimizer {
     fn optimize(
         &self,

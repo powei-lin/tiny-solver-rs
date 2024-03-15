@@ -11,11 +11,13 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 
 mod py_factors;
+mod py_optimizer;
 mod py_problem;
 pub use py_factors::*;
+pub use py_optimizer::*;
 pub use py_problem::*;
 
-use self::factors::{CostFactorSE2, Factor, PriorFactor};
+use self::factors::{CostFactorSE2, PriorFactor};
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -55,7 +57,7 @@ pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
     m.add_class::<PyProblem>()?;
-    m.add_class::<PyFactor>()?;
+    m.add_class::<PyGaussNewtonOptimizer>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     register_child_module(_py, m)?;
 
