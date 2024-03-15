@@ -18,7 +18,7 @@ print(dir(c))
 c.num = 200
 print(c.num)
 d = tiny_solver.BetweenFactor()
-c.add_residual_block(1, [("aaa", 1)], d)
+c.add_residual_block(1, [("aa", 1)], d)
 c.add_residual_block(1, [("aaa", 1)], b)
 # c.add_residual_block(1, [("aaa", 1)])
 # c.add_residual_block(1, [("aa", 1)])

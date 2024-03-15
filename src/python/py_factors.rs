@@ -29,8 +29,8 @@ impl CostFactorSE2 {
         }
     }
     #[getter]
-    pub fn get_name(&self) -> String {
-        "se2".to_string()
+    pub fn get_factor_name(&self) -> String {
+        "CostFactorSE2".to_string()
     }
 }
 
@@ -77,8 +77,8 @@ impl PyBetweenFactor {
         Self(BetweenFactor {})
     }
     #[getter]
-    pub fn get_name(&self) -> String {
-        "between".to_string()
+    pub fn get_factor_name(&self) -> String {
+        "BetweenFactor".to_string()
     }
 
     // pub fn ttt(&self) -> PyResult<()> {
