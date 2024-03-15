@@ -38,16 +38,26 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
+fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
+    let child_module = PyModule::new(py, "factors")?;
+    child_module.add_class::<CostFactorSE2>()?;
+    child_module.add_class::<BetweenFactor>()?;
+    parent_module.add_submodule(child_module)?;
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("tiny_solver.factors", child_module)?;
+    Ok(())
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
-    m.add_class::<CostFactorSE2>()?;
-    m.add_class::<BetweenFactor>()?;
     m.add_class::<PyProblem>()?;
     m.add_class::<PyFactor>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    register_child_module(_py, m)?;
 
     #[pyfn(m)]
     #[pyo3(name = "mult")]
