@@ -25,7 +25,7 @@ impl PyGaussNewtonOptimizer {
             .map(|(k, v)| (k.to_string(), v.as_matrix().column(0).into()))
             .collect();
         println!("{}", initial_values);
-        // self.0.optimize(problem.0, &init_values);
+        self.0.optimize(problem, &init_values);
         Ok(())
     }
 }
