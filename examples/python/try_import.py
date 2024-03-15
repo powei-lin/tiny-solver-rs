@@ -1,4 +1,5 @@
 import tiny_solver
+from tiny_solver import GaussNewtonOptimizer, Problem
 from tiny_solver.factors import PriorFactor, CostFactorSE2
 import numpy as np
 
@@ -16,7 +17,7 @@ def main():
     print(type(b))
     print(dir(b))
     print(b)
-    problem = tiny_solver.Problem()
+    problem = Problem()
     print(dir(problem))
     problem.num = 200
     print(problem.num)
@@ -28,7 +29,7 @@ def main():
     # d = tiny_solver.BetweenFactor()
     # d.ttt()
     # tiny_solver.te(d)
-    optimizer = tiny_solver.GaussNewtonOptimizer()
+    optimizer = GaussNewtonOptimizer()
     optimizer.optimize(problem, {"aa": np.array([123, 2, 3, 4], dtype=np.float64)})
 if __name__ == "__main__":
     main()
