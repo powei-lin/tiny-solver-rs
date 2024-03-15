@@ -15,7 +15,7 @@ mod py_problem;
 pub use py_factors::*;
 pub use py_problem::*;
 
-use self::factors::{BetweenFactor, Factor};
+use self::factors::{BetweenFactor, CostFactorSE2, Factor};
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -50,7 +50,7 @@ pub fn te(a: &PyAny) -> PyResult<()> {
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
-    m.add_class::<PyFactorSE2>()?;
+    m.add_class::<CostFactorSE2>()?;
     m.add_class::<PyBetweenFactor>()?;
     m.add_class::<PyProblem>()?;
     m.add_class::<PyFactor>()?;
