@@ -1,4 +1,5 @@
 use nalgebra as na;
+use pyo3::prelude::*;
 
 pub trait Factor: Send + Sync {
     fn residual_func(
@@ -6,7 +7,9 @@ pub trait Factor: Send + Sync {
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64>;
 }
-#[derive(Default, Clone)]
+
+#[pyclass]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct CostFactorSE2 {
     pub dx: f64,
     pub dy: f64,
@@ -43,7 +46,9 @@ impl Factor for CostFactorSE2 {
         ];
     }
 }
-#[derive(Default, Clone)]
+
+#[pyclass]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct BetweenFactor {}
 impl Factor for BetweenFactor {
     fn residual_func(

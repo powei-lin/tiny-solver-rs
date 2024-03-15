@@ -7,21 +7,6 @@ use crate::problem::Problem;
 #[pyclass(name = "Problem")]
 pub struct PyProblem(Problem);
 
-pub fn from_py_generic<T: for<'a> FromPyObject<'a>>(obj: Py<PyAny>) -> PyResult<T> {
-    Python::with_gil(|py| obj.extract(py))
-}
-
-#[pyclass(name = "Factor")]
-pub struct PyFactor(Box<dyn Factor>);
-#[pymethods]
-impl PyFactor {
-    #[new]
-    pub fn new(x: &PyAny) -> PyFactor {
-        println!("{:?}", x);
-        PyFactor(Box::new(BetweenFactor {}))
-    }
-}
-
 #[pymethods]
 impl PyProblem {
     #[new]
@@ -33,7 +18,7 @@ impl PyProblem {
         &mut self,
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
-        factor: &PyFactor,
+        pyfactor: &PyAny,
     ) -> PyResult<()> {
         self.0.add_residual_block(
             dim_residual,

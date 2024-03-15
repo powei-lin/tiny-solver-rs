@@ -4,6 +4,20 @@ use pyo3::prelude::*;
 
 use crate::factors::{self, Factor};
 
+#[pyclass(name = "Factor")]
+#[derive(Debug)]
+pub struct PyFactor {
+    pub factor: Py<PyAny>,
+}
+
+#[pymethods]
+impl PyFactor {
+    #[new]
+    pub fn new(factor: Py<PyAny>) -> Self {
+        PyFactor { factor }
+    }
+}
+
 #[pyclass(name = "FactorSE2")]
 pub struct PyFactorSE2(factors::CostFactorSE2);
 
@@ -43,12 +57,12 @@ impl PyBetweenFactor {
         Self(factors::BetweenFactor {})
     }
 
-    pub fn ttt(&self) -> PyResult<()> {
-        let x0 = na::dvector![1.0, 2.0];
-        let x0 = x0.map(num_dual::DualDVec64::from_re);
-        let a = vec![x0];
-        let r = self.0.residual_func(&a);
-        println!("{:?}", r);
-        Ok(())
-    }
+    // pub fn ttt(&self) -> PyResult<()> {
+    //     let x0 = na::dvector![1.0, 2.0];
+    //     let x0 = x0.map(num_dual::DualDVec64::from_re);
+    //     let a = vec![x0];
+    //     let r = self.0.residual_func(&a);
+    //     println!("{:?}", r);
+    //     Ok(())
+    // }
 }

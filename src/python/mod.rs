@@ -42,7 +42,6 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 pub fn te(a: &PyAny) -> PyResult<()> {
     let b: PyBetweenFactor = a.extract()?;
     println!("call from te");
-    let _ = b.ttt();
     Ok(())
 }
 
