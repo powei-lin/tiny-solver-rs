@@ -9,13 +9,11 @@ pub trait Factor: Send + Sync {
 }
 
 #[pyclass]
-#[derive(FromPyObject)]
+// #[derive(FromPyObject)]
+#[derive(Debug, Clone)]
 pub struct CostFactorSE2 {
-    #[pyo3(get, set)]
     pub dx: f64,
-    #[pyo3(get, set)]
     pub dy: f64,
-    #[pyo3(get, set)]
     pub dtheta: f64,
 }
 impl Factor for CostFactorSE2 {
@@ -61,6 +59,6 @@ impl Factor for BetweenFactor {
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64> {
-        return params[0].clone();
+        return params[0].clone() - self.v.map(num_dual::DualDVec64::from_re);
     }
 }
