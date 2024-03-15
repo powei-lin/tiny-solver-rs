@@ -68,24 +68,23 @@ def main():
     factor_graph.add_residual_block(3, [("x0", 3)], prior_factor)
     solver = GaussNewtonOptimizer()
     # gn = LevenbergMarquardtOptimizer()
-    draw = False
+    draw = True
     if draw:
         plt.figure(figsize=(8, 8))
         show_pose(init_values, "red")
 
     start_time = perf_counter()
-    solver.optimize(factor_graph, init_values)
+    init_values = solver.optimize(factor_graph, init_values)
     end_time = perf_counter()
     print(f"{solver.__class__.__name__} takes {end_time-start_time:.3f} sec")
-    # if draw:
-    #     show_pose(init_values, "blue")
-    #     ax = plt.gca()
-    #     ax.set_xlim((-50, 50))
-    #     ax.set_ylim((-80, 20))
-    #     plt.tight_layout()
-    #     plt.show()
-    # print("end")
-    pass
+    if draw:
+        show_pose(init_values, "blue")
+        ax = plt.gca()
+        ax.set_xlim((-50, 50))
+        ax.set_ylim((-80, 20))
+        plt.tight_layout()
+        plt.savefig("aaa.png")
+    print("end")
 
 
 if __name__ == "__main__":
