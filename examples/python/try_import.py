@@ -1,5 +1,4 @@
 import tiny_solver
-from tiny_solver.factors import Costf
 import numpy as np
 
 print(tiny_solver.sum_as_string(1, 2))
@@ -9,11 +8,11 @@ print(dir(tiny_solver))
 a = tiny_solver.Dual64()
 print(a.first_derivative)
 b = tiny_solver.CostFactorSE2(1.0, 2.0, 3.0)
-b = Costf(1.0, 2.0, 3.0)
+# b = Costf(1.0, 2.0, 3.0)
 
 print(type(b))
 print(dir(b))
-print(b.__class__.__name__)
+print(b)
 c = tiny_solver.Problem()
 print(dir(c))
 c.num = 200

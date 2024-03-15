@@ -12,8 +12,11 @@ pub trait Factor: Send + Sync {
 #[derive(FromPyObject)]
 // #[derive(Default, Debug, Clone, Copy)]
 pub struct CostFactorSE2 {
+    #[pyo3(get, set)]
     pub dx: f64,
+    #[pyo3(get, set)]
     pub dy: f64,
+    #[pyo3(get, set)]
     pub dtheta: f64,
 }
 impl Factor for CostFactorSE2 {

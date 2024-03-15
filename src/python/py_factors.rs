@@ -29,7 +29,7 @@ impl CostFactorSE2 {
         }
     }
     #[getter]
-    pub fn get_type(&self) -> String {
+    pub fn get_name(&self) -> String {
         "se2".to_string()
     }
 }
