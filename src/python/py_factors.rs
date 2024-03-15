@@ -34,6 +34,20 @@ impl CostFactorSE2 {
     }
 }
 
+#[pymethods]
+impl BetweenFactor {
+    #[new]
+    pub fn new() -> Self {
+        BetweenFactor {
+            v: na::dvector![0.0, 0.0, 0.0],
+        }
+    }
+    #[getter]
+    pub fn get_factor_name(&self) -> String {
+        "BetweenFactor".to_string()
+    }
+}
+
 // #[pyclass(name = "FactorSE2")]
 // pub struct PyFactorSE2(factors::CostFactorSE2);
 
@@ -66,27 +80,11 @@ impl CostFactorSE2 {
 //     }
 // }
 
-#[pyclass(name = "BetweenFactor")]
-#[derive(Clone)]
-pub struct PyBetweenFactor(BetweenFactor);
-
-#[pymethods]
-impl PyBetweenFactor {
-    #[new]
-    pub fn new() -> Self {
-        Self(BetweenFactor {})
-    }
-    #[getter]
-    pub fn get_factor_name(&self) -> String {
-        "BetweenFactor".to_string()
-    }
-
-    // pub fn ttt(&self) -> PyResult<()> {
-    //     let x0 = na::dvector![1.0, 2.0];
-    //     let x0 = x0.map(num_dual::DualDVec64::from_re);
-    //     let a = vec![x0];
-    //     let r = self.0.residual_func(&a);
-    //     println!("{:?}", r);
-    //     Ok(())
-    // }
-}
+// pub fn ttt(&self) -> PyResult<()> {
+//     let x0 = na::dvector![1.0, 2.0];
+//     let x0 = x0.map(num_dual::DualDVec64::from_re);
+//     let a = vec![x0];
+//     let r = self.0.residual_func(&a);
+//     println!("{:?}", r);
+//     Ok(())
+// }

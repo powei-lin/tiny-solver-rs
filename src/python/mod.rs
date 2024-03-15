@@ -38,24 +38,16 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
-#[pyfunction]
-pub fn te(a: &PyAny) -> PyResult<()> {
-    let b: PyBetweenFactor = a.extract()?;
-    println!("call from te");
-    Ok(())
-}
-
 /// A Python module implemented in Rust.
 #[pymodule]
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
     m.add_class::<CostFactorSE2>()?;
-    m.add_class::<PyBetweenFactor>()?;
+    m.add_class::<BetweenFactor>()?;
     m.add_class::<PyProblem>()?;
     m.add_class::<PyFactor>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    m.add_function(wrap_pyfunction!(te, m)?)?;
 
     #[pyfn(m)]
     #[pyo3(name = "mult")]

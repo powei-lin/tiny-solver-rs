@@ -5,24 +5,19 @@ use crate::factors::*;
 use crate::problem::Problem;
 
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
-    let obj_type: String = py_any.getattr("factor_name")?.extract()?;
+    let factor_name: String = py_any.getattr("factor_name")?.extract()?;
 
-    // Box::new(PyFactor { factor: py_any })
-    match obj_type.as_str() {
+    match factor_name.as_str() {
         "CostFactorSE2" => {
-            // 假设 PyFactor 类型的对象有一个 `value` 属性
             println!("add se2");
-            let f: CostFactorSE2 = py_any.extract().unwrap();
-            println!("ddd {} {} {}", f.dx, f.dy, f.dtheta);
-            // let value: i32 = py_any.getattr("value")?.extract()?;
-            Ok(Box::new(f))
-            // Ok(Box::new(CostFactorSE2 { dx: 1.0 , dy:0.1, dtheta:0.0 }))
+            let factor: CostFactorSE2 = py_any.extract().unwrap();
+            println!("ddd {} {} {}", factor.dx, factor.dy, factor.dtheta);
+            Ok(Box::new(factor))
         }
         "BetweenFactor" => {
-            // 假设 TFactor 类型的对象也有一个 `value` 属性
-            println!("fff");
-            // let value: i32 = py_any.getattr("value")?.extract()?;
-            Ok(Box::new(BetweenFactor {}))
+            let factor: BetweenFactor = py_any.extract().unwrap();
+            println!("add between factor");
+            Ok(Box::new(factor))
         }
         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
             "Unknown factor type",

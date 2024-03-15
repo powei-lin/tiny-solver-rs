@@ -52,8 +52,10 @@ impl Factor for CostFactorSE2 {
 
 #[pyclass]
 // #[derive(FromPyObject)]
-#[derive(Default, Debug, Clone, Copy)]
-pub struct BetweenFactor {}
+#[derive(Debug, Clone)]
+pub struct BetweenFactor {
+    pub v: na::DVector<f64>,
+}
 impl Factor for BetweenFactor {
     fn residual_func(
         &self,

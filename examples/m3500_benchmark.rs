@@ -39,7 +39,9 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
             }
         }
     }
-    let origin_factor = factors::BetweenFactor {};
+    let origin_factor = factors::BetweenFactor {
+        v: na::dvector![0.0, 0.0, 0.0],
+    };
     problem.add_residual_block(3, vec![("x0".to_string(), 3)], Box::new(origin_factor));
     (problem, init_values)
 }
