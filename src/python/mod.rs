@@ -56,7 +56,7 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<PyDual64>()?;
-    m.add_class::<PyProblem>()?;
+    m.add_class::<Problem>()?;
     m.add_class::<PyGaussNewtonOptimizer>()?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     register_child_module(_py, m)?;

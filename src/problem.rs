@@ -1,3 +1,4 @@
+use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -8,6 +9,7 @@ use rayon::prelude::*;
 
 use crate::{factors, residual_block};
 
+#[pyclass]
 pub struct Problem {
     pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,
