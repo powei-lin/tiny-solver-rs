@@ -1,12 +1,6 @@
 import tiny_solver
+from tiny_solver.factors import Costf
 import numpy as np
-from dataclasses import dataclass
-@dataclass
-class Costf:
-    dx: float
-    dy: float
-    dtheta: float
-    type: str = "se2"
 
 print(tiny_solver.sum_as_string(1, 2))
 tiny_solver.mult(np.zeros((1, 2)))
@@ -19,6 +13,7 @@ b = Costf(1.0, 2.0, 3.0)
 
 print(type(b))
 print(dir(b))
+print(b.__class__.__name__)
 c = tiny_solver.Problem()
 print(dir(c))
 c.num = 200

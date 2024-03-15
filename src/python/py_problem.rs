@@ -4,7 +4,7 @@ use crate::factors::*;
 use crate::problem::Problem;
 
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
-    let obj_type: String = py_any.getattr("type")?.extract()?;
+    let obj_type: String = py_any.getattr("name")?.extract()?;
     // Box::new(PyFactor { factor: py_any })
     match obj_type.as_str() {
         "se2" => {

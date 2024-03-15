@@ -77,7 +77,7 @@ impl PyBetweenFactor {
         Self(BetweenFactor {})
     }
     #[getter]
-    pub fn get_type(&self) -> String {
+    pub fn get_name(&self) -> String {
         "between".to_string()
     }
 
