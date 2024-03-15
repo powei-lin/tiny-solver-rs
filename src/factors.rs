@@ -9,7 +9,8 @@ pub trait Factor: Send + Sync {
 }
 
 #[pyclass]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(FromPyObject)]
+// #[derive(Default, Debug, Clone, Copy)]
 pub struct CostFactorSE2 {
     pub dx: f64,
     pub dy: f64,

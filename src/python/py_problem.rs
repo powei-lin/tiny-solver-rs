@@ -10,6 +10,8 @@ fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
         "se2" => {
             // 假设 PyFactor 类型的对象有一个 `value` 属性
             println!("add se2");
+            let f: CostFactorSE2 = py_any.extract().unwrap();
+            // println!("ddd {}", f.dx);
             // let value: i32 = py_any.getattr("value")?.extract()?;
             Ok(Box::new(BetweenFactor {}))
             // Ok(Box::new(CostFactorSE2 { dx: 1.0 , dy:0.1, dtheta:0.0 }))

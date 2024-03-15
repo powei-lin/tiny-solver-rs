@@ -1,5 +1,12 @@
 import tiny_solver
 import numpy as np
+from dataclasses import dataclass
+@dataclass
+class Costf:
+    dx: float
+    dy: float
+    dtheta: float
+    type: str = "se2"
 
 print(tiny_solver.sum_as_string(1, 2))
 tiny_solver.mult(np.zeros((1, 2)))
@@ -8,6 +15,8 @@ print(dir(tiny_solver))
 a = tiny_solver.Dual64()
 print(a.first_derivative)
 b = tiny_solver.CostFactorSE2(1.0, 2.0, 3.0)
+b = Costf(1.0, 2.0, 3.0)
+
 print(type(b))
 print(dir(b))
 c = tiny_solver.Problem()
