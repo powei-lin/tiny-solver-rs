@@ -1,5 +1,6 @@
 use nalgebra as na;
 use num_dual;
+use numpy::{pyarray, PyArray2, PyReadonlyArray1, PyReadonlyArray2, ToPyArray};
 use pyo3::prelude::*;
 
 use crate::factors::*;
@@ -37,7 +38,8 @@ impl CostFactorSE2 {
 #[pymethods]
 impl BetweenFactor {
     #[new]
-    pub fn new() -> Self {
+    pub fn new(x: PyReadonlyArray1<f64>) -> Self {
+        println!("pypy {:?}", x);
         BetweenFactor {
             v: na::dvector![0.0, 0.0, 0.0],
         }
@@ -47,6 +49,12 @@ impl BetweenFactor {
         "BetweenFactor".to_string()
     }
 }
+// pub fn npp<'py>(
+//     py: Python<'py>,
+// ) -> PyResult<&'py PyArray2<i32>> {
+//     let py_array = pyarray![py, [0, 1, 2], [3, 4, 5], [6, 7, 8]];
+
+//     let py_array = py_array.readwrite();
 
 // #[pyclass(name = "FactorSE2")]
 // pub struct PyFactorSE2(factors::CostFactorSE2);

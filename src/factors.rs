@@ -9,7 +9,6 @@ pub trait Factor: Send + Sync {
 }
 
 #[pyclass]
-// #[derive(FromPyObject)]
 #[derive(Debug, Clone)]
 pub struct CostFactorSE2 {
     pub dx: f64,
@@ -49,7 +48,6 @@ impl Factor for CostFactorSE2 {
 }
 
 #[pyclass]
-// #[derive(FromPyObject)]
 #[derive(Debug, Clone)]
 pub struct BetweenFactor {
     pub v: na::DVector<f64>,
