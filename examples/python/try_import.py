@@ -1,5 +1,5 @@
 import tiny_solver
-from tiny_solver.factors import BetweenFactor, CostFactorSE2
+from tiny_solver.factors import PriorFactor, CostFactorSE2
 import numpy as np
 
 print(tiny_solver.__version__)
@@ -19,7 +19,7 @@ c = tiny_solver.Problem()
 print(dir(c))
 c.num = 200
 print(c.num)
-d = BetweenFactor(np.array([2.0,3.0]))
+d = PriorFactor(np.array([1.0, 2.0,3.0]))
 c.add_residual_block(1, [("aa", 1)], d)
 c.add_residual_block(1, [("aaa", 1)], b)
 # c.add_residual_block(1, [("aaa", 1)])

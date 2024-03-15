@@ -15,7 +15,7 @@ mod py_problem;
 pub use py_factors::*;
 pub use py_problem::*;
 
-use self::factors::{BetweenFactor, CostFactorSE2, Factor};
+use self::factors::{CostFactorSE2, Factor, PriorFactor};
 #[pyclass(name = "Dual64")]
 pub struct PyDual64(tiny_solver_old::SolverParameters);
 
@@ -41,7 +41,7 @@ pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     let child_module = PyModule::new(py, "factors")?;
     child_module.add_class::<CostFactorSE2>()?;
-    child_module.add_class::<BetweenFactor>()?;
+    child_module.add_class::<PriorFactor>()?;
     parent_module.add_submodule(child_module)?;
     py.import("sys")?
         .getattr("modules")?

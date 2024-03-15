@@ -1,12 +1,12 @@
-use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3::{prelude::*, PyTypeInfo};
 
 use crate::factors::*;
 use crate::problem::Problem;
 
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
-    let factor_name: String = py_any.getattr("factor_name")?.extract()?;
-
+    let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
+    println!("{}", factor_name);
     match factor_name.as_str() {
         "CostFactorSE2" => {
             println!("add se2");
@@ -14,9 +14,9 @@ fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
             println!("ddd {} {} {}", factor.dx, factor.dy, factor.dtheta);
             Ok(Box::new(factor))
         }
-        "BetweenFactor" => {
-            let factor: BetweenFactor = py_any.extract().unwrap();
-            println!("add between factor");
+        "PriorFactor" => {
+            let factor: PriorFactor = py_any.extract().unwrap();
+            println!("add prior factor {}", factor.v);
             Ok(Box::new(factor))
         }
         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(

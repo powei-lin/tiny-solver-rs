@@ -49,10 +49,10 @@ impl Factor for CostFactorSE2 {
 
 #[pyclass]
 #[derive(Debug, Clone)]
-pub struct BetweenFactor {
+pub struct PriorFactor {
     pub v: na::DVector<f64>,
 }
-impl Factor for BetweenFactor {
+impl Factor for PriorFactor {
     fn residual_func(
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,

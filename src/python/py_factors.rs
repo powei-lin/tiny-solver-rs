@@ -1,7 +1,7 @@
 use nalgebra as na;
 use num_dual;
 use numpy::{pyarray, PyArray2, PyReadonlyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, PyTypeInfo};
 
 use crate::factors::*;
 
@@ -29,24 +29,15 @@ impl CostFactorSE2 {
             dtheta: theta,
         }
     }
-    #[getter]
-    pub fn get_factor_name(&self) -> String {
-        "CostFactorSE2".to_string()
-    }
 }
 
 #[pymethods]
-impl BetweenFactor {
+impl PriorFactor {
     #[new]
     pub fn new(x: PyReadonlyArray1<f64>) -> Self {
         println!("pypy {:?}", x);
-        BetweenFactor {
-            v: na::dvector![0.0, 0.0, 0.0],
-        }
-    }
-    #[getter]
-    pub fn get_factor_name(&self) -> String {
-        "BetweenFactor".to_string()
+        let d: na::DVector<f64> = x.as_matrix().column(0).into();
+        PriorFactor { v: d }
     }
 }
 // pub fn npp<'py>(

@@ -32,13 +32,13 @@ impl Problem {
         factor: Box<dyn factors::Factor + Send>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
-            dim_residual: dim_residual,
+            dim_residual,
             residual_row_start_idx: self.total_residual_dimension,
             variable_key_list: variable_key_size_list
                 .iter()
                 .map(|(x, _)| x.to_string())
                 .collect(),
-            factor: factor,
+            factor,
         });
         for (key, variable_dimesion) in variable_key_size_list {
             if !self.variable_name_to_col_idx_dict.contains_key(&key) {
