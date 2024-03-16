@@ -1,6 +1,5 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import numpy as np
-def mult(x: np.ndarray) -> np.ndarray: ...
 
 
 class Problem:
@@ -9,4 +8,4 @@ class Problem:
 
 class GaussNewtonOptimizer:
     def __init__(self) -> None: ...
-    def optimize(self, problem: Problem, init_values: dict) -> None: ...
+    def optimize(self, problem: Problem, init_values: Dict[str, np.ndarray]) -> None: ...

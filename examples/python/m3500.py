@@ -8,8 +8,6 @@ from tiny_solver import GaussNewtonOptimizer, Problem
 from tiny_solver.factors import PriorFactor, CostFactorSE2
 
 
-
-
 def load_g2o(file_path: str):
     init_values = {}
     factor_graph = Problem()
