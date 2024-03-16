@@ -5,17 +5,13 @@ use crate::problem::Problem;
 
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
     let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
-    println!("{}", factor_name);
     match factor_name.as_str() {
         "CostFactorSE2" => {
-            println!("add se2");
             let factor: CostFactorSE2 = py_any.extract().unwrap();
-            println!("ddd {} {} {}", factor.dx, factor.dy, factor.dtheta);
             Ok(Box::new(factor))
         }
         "PriorFactor" => {
             let factor: PriorFactor = py_any.extract().unwrap();
-            println!("add prior factor {}", factor.v);
             Ok(Box::new(factor))
         }
         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -44,11 +40,11 @@ impl Problem {
             convert_pyany_to_factor(pyfactor).unwrap(),
         );
 
-        println!(
-            "total residual {}, total keys {}",
-            self.total_residual_dimension,
-            self.variable_name_to_col_idx_dict.len()
-        );
+        // println!(
+        //     "total residual {}, total keys {}",
+        //     self.total_residual_dimension,
+        //     self.variable_name_to_col_idx_dict.len()
+        // );
         Ok(())
     }
 

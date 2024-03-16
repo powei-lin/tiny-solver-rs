@@ -1,5 +1,4 @@
-use nalgebra as na;
-use numpy::{pyarray, PyArray2, PyReadonlyArray1, PyReadonlyArray2, ToPyArray};
+use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
 use crate::factors::*;

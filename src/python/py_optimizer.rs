@@ -1,7 +1,8 @@
-use numpy::{pyarray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, ToPyArray};
+use std::collections::HashMap;
+
+use numpy::{PyArray2, PyReadonlyArray1, ToPyArray};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::collections::HashMap;
 
 use crate::optimizer::Optimizer;
 use crate::problem::Problem;

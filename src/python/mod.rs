@@ -3,6 +3,10 @@ use pyo3::prelude::*;
 use crate::factors::*;
 use crate::*;
 
+mod py_factors;
+mod py_optimizer;
+mod py_problem;
+
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     let child_module = PyModule::new(py, "factors")?;
     child_module.add_class::<CostFactorSE2>()?;
