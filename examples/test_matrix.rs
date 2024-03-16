@@ -43,7 +43,6 @@ fn cost_function_dyn(
 // }
 
 fn main() {
-    tabc();
     println!("hello");
     let mut x0 = Matrix3x1d::new(0.76026643, -30.01799744, 0.55192142);
     let mut x1 = Matrix1x1d::new(0.76026643);

@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use faer::sparse::SparseColMat;
 use faer_ext::IntoFaer;
 use nalgebra as na;
+use pyo3::prelude::*;
 use rayon::prelude::*;
 
 use crate::{factors, residual_block};

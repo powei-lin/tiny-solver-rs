@@ -1,6 +1,7 @@
+use std::ops::Mul;
+
 use nalgebra as na;
 use num_dual;
-use std::ops::Mul;
 
 pub struct SolverParameters {
     gradient_threshold: f64,

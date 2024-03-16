@@ -1,7 +1,7 @@
-use pyo3::prelude::*;
 use std::time::Instant;
 
 use faer_ext::IntoNalgebra;
+use pyo3::prelude::*;
 
 use crate::{linear::sparse_cholesky, optimizer};
 

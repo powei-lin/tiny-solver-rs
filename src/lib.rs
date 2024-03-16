@@ -13,4 +13,3 @@ pub use optimizer::*;
 pub use problem::*;
 pub use python::*;
 pub use residual_block::*;
-// pub use factors::*;
