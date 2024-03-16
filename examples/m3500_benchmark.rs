@@ -1,9 +1,10 @@
-use nalgebra as na;
-use plotters::prelude::*;
-use std::time::Instant;
-
 use std::collections::HashMap;
 use std::fs::read_to_string;
+use std::time::Instant;
+
+use nalgebra as na;
+use plotters::prelude::*;
+
 use tiny_solver::{factors, gauss_newton_optimizer, optimizer::Optimizer, problem};
 // use tiny_solver::{gauss_newton_optimizer, optimizer::Optimizer, problem, residual_block, factors};
 
