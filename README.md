@@ -1,33 +1,38 @@
 # tiny-solver-rs
+[![PyPI - Version](https://img.shields.io/pypi/v/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
+
 Inspired by [ceres-solver](https://github.com/ceres-solver/ceres-solver), [tiny-solver](https://github.com/keir/tinysolver), and [minisam](https://github.com/dongjing3309/minisam).
 
 This is a general optimizer written in Rust, including bindings for Python. If you're familiar with ceres-solver or factor-graph optimizers, you'll find it very easy to use.
 
-### Installation
-#### python
+## Installation
+### python
 The python package can be installed directly from PyPI:
 ```sh
 pip install tiny-solver
 ```
-#### rust
+### rust
 ```sh
 cargo add tiny-solver
 ```
 
+## Current Features
 
-### Usage
+
+## Usage
 Under development.
 
-### Example
+## Example
 
-#### python
+### python
 ```sh
 git clone https://github.com/powei-lin/tiny-solver-rs.git
 cd tiny-solver-rs
 pip install tiny-solver
 python3 examples/python/m3500.py
 ```
-#### rust
+### rust
 ```sh
 git clone https://github.com/powei-lin/tiny-solver-rs.git
 cd tiny-solver-rs
