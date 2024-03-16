@@ -83,7 +83,7 @@ def main():
         ax.set_xlim((-50, 50))
         ax.set_ylim((-80, 20))
         plt.tight_layout()
-        plt.savefig("aaa.png")
+        plt.savefig("m3500_py.png")
     print("end")
 
 

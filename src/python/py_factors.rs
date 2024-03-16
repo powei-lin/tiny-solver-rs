@@ -20,8 +20,8 @@ impl CostFactorSE2 {
 impl PriorFactor {
     #[new]
     pub fn new(x: PyReadonlyArray1<f64>) -> Self {
-        println!("pypy {:?}", x);
-        let d: na::DVector<f64> = x.as_matrix().column(0).into();
-        PriorFactor { v: d }
+        PriorFactor {
+            v: x.as_matrix().column(0).into(),
+        }
     }
 }
