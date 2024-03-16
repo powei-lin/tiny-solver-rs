@@ -1,18 +1,23 @@
 use std::time::Instant;
 
 use faer_ext::IntoNalgebra;
+use pyo3::prelude::*;
 
 use crate::{linear::sparse_cholesky, optimizer};
+
+#[pyclass]
+#[derive(Debug, Clone)]
 pub struct GaussNewtonOptimizer {}
+
 impl optimizer::Optimizer for GaussNewtonOptimizer {
     fn optimize(
         &self,
-        problem: crate::problem::Problem,
+        problem: &crate::problem::Problem,
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
     ) -> std::collections::HashMap<String, nalgebra::DVector<f64>> {
         let mut params = initial_values.clone();
 
-        for i in 0..10 {
+        for i in 0..50 {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
@@ -21,7 +26,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 
-            if dx.norm_l1() < 1e-16 {
+            if dx.norm_l1() < 1e-8 {
                 println!("grad too low");
                 break;
             }

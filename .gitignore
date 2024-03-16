@@ -1,1 +1,6 @@
 /target
+*.pyc
+__pycache__
+*.so
+.DS_Store
+.vscode/*
