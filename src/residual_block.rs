@@ -44,11 +44,11 @@ impl ResidualBlock {
 }
 
 fn get_variable_rows(variable_rows: &[usize]) -> Vec<Vec<usize>> {
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(variable_rows.len());
     let mut current = 0;
     for &num in variable_rows {
         let next = current + num;
-        let range = (current..next).collect::<Vec<_>>();
+        let range = (current..next).collect();
         result.push(range);
         current = next;
     }

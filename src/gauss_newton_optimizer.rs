@@ -3,7 +3,7 @@ use std::time::Instant;
 use faer_ext::IntoNalgebra;
 use pyo3::prelude::*;
 
-use crate::{linear::sparse_cholesky, optimizer};
+use crate::{linear::sparse_cholesky, optimizer, OptimizerOptions};
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -14,10 +14,12 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         &self,
         problem: &crate::problem::Problem,
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
+        optimizer_option: Option<OptimizerOptions>,
     ) -> std::collections::HashMap<String, nalgebra::DVector<f64>> {
         let mut params = initial_values.clone();
+        let opt_option = optimizer_option.unwrap_or_default();
 
-        for i in 0..50 {
+        for i in 0..opt_option.max_iteration {
             println!("{}", i);
 
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);

@@ -29,7 +29,7 @@ impl GaussNewtonOptimizer {
             .map(|(k, v)| (k.to_string(), v.as_matrix().column(0).into()))
             .collect();
         // println!("{}", initial_values);
-        let result = self.optimize(problem, &init_values);
+        let result = self.optimize(problem, &init_values, None);
 
         let output_d: HashMap<String, Py<PyArray2<f64>>> = result
             .iter()

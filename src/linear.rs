@@ -2,6 +2,16 @@ use std::ops::Mul;
 
 use faer::prelude::SpSolver;
 
+pub enum LinearSolver {
+    SparseCholesky,
+    SparseQR,
+}
+impl Default for LinearSolver {
+    fn default() -> Self {
+        LinearSolver::SparseCholesky
+    }
+}
+
 pub fn sparse_cholesky(
     residuals: &faer::Mat<f64>,
     jacobians: &faer::sparse::SparseColMat<usize, f64>,
