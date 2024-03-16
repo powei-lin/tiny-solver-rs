@@ -28,16 +28,37 @@ pub trait Optimizer {
     }
 }
 
+#[derive(PartialEq, Debug)]
+pub enum SolverStatus {
+    Running,
+    // Resulting solution may be OK to use.
+    GradientTooSmall,         // eps > max(J'*f(x))
+    RelativeStepSizeTooSmall, // eps > ||dx|| / ||x||
+    ErrorTooSmall,            // eps > ||f(x)||
+    HitMaxIterations,
+    // Numerical issues
+    // FAILED_TO_EVALUATE_COST_FUNCTION,
+    // FAILED_TO_SOLVER_LINEAR_SYSTEM,
+}
 pub struct OptimizerOptions {
     pub max_iteration: usize,
     pub linear_solver_type: LinearSolver,
+    pub verbosity_level: usize,
+    pub min_abs_error_decrease_threshold: f64,
+    pub min_rel_error_decrease_threshold: f64,
+    pub min_error_threshold: f64,
+    // pub relative_step_threshold: 1e-16,
 }
 
 impl Default for OptimizerOptions {
     fn default() -> Self {
         OptimizerOptions {
-            max_iteration: 100,
+            max_iteration: 500,
             linear_solver_type: LinearSolver::SparseCholesky,
+            verbosity_level: 0,
+            min_abs_error_decrease_threshold: 1e-5,
+            min_rel_error_decrease_threshold: 1e-5,
+            min_error_threshold: 1e-10,
         }
     }
 }

@@ -19,19 +19,37 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let mut params = initial_values.clone();
         let opt_option = optimizer_option.unwrap_or_default();
 
+        let mut last_err: f64 = 1.0;
         for i in 0..opt_option.max_iteration {
-            println!("{}", i);
-
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
+            let current_error = residuals.norm_l2();
+            println!("iter:{} total err:{}", i, current_error);
+            if current_error < opt_option.min_error_threshold {
+                println!("error too low");
+                break;
+            }
+            if i > 0 {
+                if last_err - current_error < opt_option.min_abs_error_decrease_threshold {
+                    println!("abs low");
+                    break;
+                } else if (last_err - current_error) / last_err
+                    < opt_option.min_rel_error_decrease_threshold
+                {
+                    println!("rel low");
+                    break;
+                }
+            }
+            last_err = current_error;
+
             let start = Instant::now();
             let dx = sparse_cholesky(&residuals, &jac);
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 
-            if dx.norm_l1() < 1e-8 {
-                println!("grad too low");
-                break;
-            }
+            // if dx.norm_l1() < opt_option.gradient_threshold {
+            //     println!("grad too low");
+            //     break;
+            // }
             let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
             self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
         }
