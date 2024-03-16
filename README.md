@@ -18,10 +18,15 @@ Under development.
 ### Example
 #### rust
 ```sh
+git clone https://github.com/powei-lin/tiny-solver-rs.git
+cd tiny-solver-rs
 cargo run -r --example m3500_benchmar
 ```
 
 #### python
-```
+```sh
+git clone https://github.com/powei-lin/tiny-solver-rs.git
+cd tiny-solver-rs
+pip install tiny-solver
 python3 examples/python/m3500.py
 ```
