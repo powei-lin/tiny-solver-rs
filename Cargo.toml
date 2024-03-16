@@ -26,7 +26,8 @@ rayon = "1.9.0"
 
 [[example]]
 name = "m3500_benchmark"
-crate-type = ["bin"]
+# crate-type = ["bin"]
+path = "examples/m3500_benchmark.rs"
 
 [dev-dependencies]
 plotters = "0.3.5"
