@@ -2,6 +2,15 @@
 name = "tiny-solver"
 version = "0.3.0"
 edition = "2021"
+authors = ["Powei Lin <poweilin1994@gmail.com>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+description = "Factor graph solver"
+homepage = "https://github.com/powei-lin/tiny-solver-rs"
+repository = "https://github.com/powei-lin/tiny-solver-rs"
+keywords = ["factor graph", "ceres-solver", "minisam"]
+categories = ["data-structures", "science", "mathematics"]
+exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
