@@ -3,8 +3,14 @@ Inspired by ceres-solver and tiny-solver. This is a re-implemented version of [t
 
 ### Installation
 #### rust
+```sh
+cargo add tiny-solver
+```
 
 #### python
+```sh
+pip install tiny-solver
+```
 
 ### Usage
 Under development.
