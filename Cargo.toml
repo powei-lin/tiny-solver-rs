@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Factor graph solver"
 homepage = "https://github.com/powei-lin/tiny-solver-rs"
 repository = "https://github.com/powei-lin/tiny-solver-rs"
-keywords = ["factor graph", "ceres-solver", "minisam"]
+keywords = ["factor-graph", "ceres-solver", "minisam"]
 categories = ["data-structures", "science", "mathematics"]
 exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*"]
 
@@ -26,7 +26,8 @@ rayon = "1.9.0"
 
 [[example]]
 name = "m3500_benchmark"
-crate-type = ["bin"]
+# crate-type = ["bin"]
+path = "examples/m3500_benchmark.rs"
 
 [dev-dependencies]
 plotters = "0.3.5"
