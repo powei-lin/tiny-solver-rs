@@ -28,6 +28,7 @@ cargo add tiny-solver
 - [ ] levenberg_marquardt_optimizer
 - [ ] information matrix
 - [ ] loss function
+- [ ] factor in python
 
 ## Usage
 Under development.
