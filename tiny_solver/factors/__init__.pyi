@@ -1,6 +1,6 @@
 import numpy as np
 
-class CostFactorSE2:
+class BetweenFactorSE2:
     def __init__(self, x: float, y: float, theta: float) -> None: ...
 
 class PriorFactor:

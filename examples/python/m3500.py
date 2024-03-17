@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from tiny_solver import GaussNewtonOptimizer, Problem
-from tiny_solver.factors import PriorFactor, CostFactorSE2
+from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 
 
 def load_g2o(file_path: str):
@@ -30,7 +30,7 @@ def load_g2o(file_path: str):
                 i11, i12, i13, i22, i23, i33 = items_float[3:]
                 matrix_i = np.array([[i11, i12, i13], [i12, i22, i23], [i13, i23, i33]])
                 # loss = np.linalg.cholesky(matrix_i)
-                factor = CostFactorSE2(dx, dy, dtheta)
+                factor = BetweenFactorSE2(dx, dy, dtheta)
                 factor_graph.add_residual_block(3, [(point_id0, 3), (point_id1, 3)], factor)
             elif items[0] == "VERTEX_SE2":
                 if int(items[1]) > vertex_num:
