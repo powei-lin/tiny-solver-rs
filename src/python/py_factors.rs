@@ -4,10 +4,10 @@ use pyo3::prelude::*;
 use crate::factors::*;
 
 #[pymethods]
-impl CostFactorSE2 {
+impl BetweenFactorSE2 {
     #[new]
     pub fn new(x: f64, y: f64, theta: f64) -> Self {
-        CostFactorSE2 {
+        BetweenFactorSE2 {
             dx: x,
             dy: y,
             dtheta: theta,

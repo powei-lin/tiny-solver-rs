@@ -10,12 +10,12 @@ pub trait Factor: Send + Sync {
 
 #[pyclass]
 #[derive(Debug, Clone)]
-pub struct CostFactorSE2 {
+pub struct BetweenFactorSE2 {
     pub dx: f64,
     pub dy: f64,
     pub dtheta: f64,
 }
-impl Factor for CostFactorSE2 {
+impl Factor for BetweenFactorSE2 {
     fn residual_func(
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,

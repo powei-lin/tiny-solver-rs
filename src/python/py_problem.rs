@@ -6,8 +6,8 @@ use crate::problem::Problem;
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
     let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
     match factor_name.as_str() {
-        "CostFactorSE2" => {
-            let factor: CostFactorSE2 = py_any.extract().unwrap();
+        "BetweenFactorSE2" => {
+            let factor: BetweenFactorSE2 = py_any.extract().unwrap();
             Ok(Box::new(factor))
         }
         "PriorFactor" => {
@@ -40,11 +40,6 @@ impl Problem {
             convert_pyany_to_factor(pyfactor).unwrap(),
         );
 
-        // println!(
-        //     "total residual {}, total keys {}",
-        //     self.total_residual_dimension,
-        //     self.variable_name_to_col_idx_dict.len()
-        // );
         Ok(())
     }
 

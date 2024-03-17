@@ -9,7 +9,7 @@ mod py_problem;
 
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     let child_module = PyModule::new(py, "factors")?;
-    child_module.add_class::<CostFactorSE2>()?;
+    child_module.add_class::<BetweenFactorSE2>()?;
     child_module.add_class::<PriorFactor>()?;
     parent_module.add_submodule(child_module)?;
     py.import("sys")?

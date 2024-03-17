@@ -16,7 +16,7 @@ impl Default for LinearSolver {
 pub fn sparse_cholesky(
     residuals: &faer::Mat<f64>,
     jacobians: &faer::sparse::SparseColMat<usize, f64>,
-    symbolic_pattern: &mut Option<solvers::SymbolicCholesky<usize>>
+    symbolic_pattern: &mut Option<solvers::SymbolicCholesky<usize>>,
 ) -> faer::Mat<f64> {
     let hessian = jacobians
         .as_ref()
@@ -30,18 +30,14 @@ pub fn sparse_cholesky(
     } else {
         // initialize the pattern
         *symbolic_pattern = Some(
-            solvers::SymbolicCholesky::try_new(hessian.symbolic(), faer::Side::Lower)
-                .unwrap()
+            solvers::SymbolicCholesky::try_new(hessian.symbolic(), faer::Side::Lower).unwrap(),
         );
         symbolic_pattern.as_ref().unwrap()
     };
-    let dx = solvers::Cholesky::try_new_with_symbolic(
-        sym.clone(),
-        hessian.as_ref(),
-        faer::Side::Lower,
-    )
-    .unwrap()
-    .solve(b);
+    let dx =
+        solvers::Cholesky::try_new_with_symbolic(sym.clone(), hessian.as_ref(), faer::Side::Lower)
+            .unwrap()
+            .solve(b);
     dx
 }
 

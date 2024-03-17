@@ -27,7 +27,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
                 let dy = line[4].parse::<f64>().unwrap();
                 let dtheta = line[5].parse::<f64>().unwrap();
                 // todo add info matrix
-                let edge = factors::CostFactorSE2 {
+                let edge = factors::BetweenFactorSE2 {
                     dx: dx,
                     dy: dy,
                     dtheta: dtheta,
