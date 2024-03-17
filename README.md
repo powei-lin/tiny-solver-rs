@@ -20,7 +20,7 @@ cargo add tiny-solver
 ## Current Features
 
 - [x] Automatic Derivatives using [num-dual](https://github.com/itt-ustutt/num-dual)
-- [x] Sparse QR, Sparse Cholesky using [faer](https://github.com/sarah-ek/faer-rs)
+- [x] ~~Sparse QR~~, Sparse Cholesky using [faer](https://github.com/sarah-ek/faer-rs)
 - [x] GaussNewtonOptimizer
 - [x] Multithreading jacobian
 
