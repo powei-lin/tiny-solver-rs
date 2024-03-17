@@ -1,4 +1,5 @@
 from time import perf_counter
+from typing import Dict, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,7 +8,7 @@ from tiny_solver import GaussNewtonOptimizer, Problem
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 
 
-def load_g2o(file_path: str):
+def load_g2o(file_path: str)-> Tuple[Problem, Dict[str, np.ndarray]]:
     init_values = {}
     factor_graph = Problem()
     vertex_num = 4000
@@ -29,7 +30,6 @@ def load_g2o(file_path: str):
                 #     print(dpose)
                 i11, i12, i13, i22, i23, i33 = items_float[3:]
                 matrix_i = np.array([[i11, i12, i13], [i12, i22, i23], [i13, i23, i33]])
-                # loss = np.linalg.cholesky(matrix_i)
                 factor = BetweenFactorSE2(dx, dy, dtheta)
                 factor_graph.add_residual_block(3, [(point_id0, 3), (point_id1, 3)], factor)
             elif items[0] == "VERTEX_SE2":
@@ -39,16 +39,14 @@ def load_g2o(file_path: str):
                 x = float(items[2])
                 y = float(items[3])
                 theta = float(items[4])
-                # if point_id == "x10" or point_id == "x11":
-                #     print(point_id, theta, x, y)
+
 
                 init_values[point_id] = np.array([theta, x, y], dtype=np.float64)
             else:
                 print(items)
                 break
     return factor_graph, init_values
-    # show_pose(init_values=init_values)
-    # print(init_values)
+
 
 
 def show_pose(init_values, color):
