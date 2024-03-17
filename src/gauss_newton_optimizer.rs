@@ -1,5 +1,8 @@
+use std::ops::Mul;
 use std::time::Instant;
 
+use faer::prelude::SpSolver;
+use faer::sparse::linalg::solvers;
 use faer_ext::IntoNalgebra;
 use pyo3::prelude::*;
 
@@ -20,6 +23,17 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let opt_option = optimizer_option.unwrap_or_default();
 
         let mut last_err: f64 = 1.0;
+
+        // let (_, jac) = problem.compute_residual_and_jacobian(&params);
+        // let hessian = jac
+        //     .as_ref()
+        //     .transpose()
+        //     .to_col_major()
+        //     .unwrap()
+        //     .mul(jac.as_ref());
+        // let symbolic = solvers::SymbolicCholesky::try_new(hessian.symbolic(), faer::Side::Lower).unwrap();
+        let mut symbolic: Option<solvers::SymbolicCholesky<usize>> = None;
+
         for i in 0..opt_option.max_iteration {
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
             let current_error = residuals.norm_l2();
@@ -42,7 +56,31 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            let dx = sparse_cholesky(&residuals, &jac);
+            let hessian = jac
+                .as_ref()
+                .transpose()
+                .to_col_major()
+                .unwrap()
+                .mul(jac.as_ref());
+            let b = jac.as_ref().transpose().mul(-residuals);
+            let sym = if symbolic.is_some() {
+                symbolic.as_ref().unwrap()
+            } else {
+                symbolic = Some(
+                    solvers::SymbolicCholesky::try_new(hessian.symbolic(), faer::Side::Lower)
+                        .unwrap(),
+                );
+                symbolic.as_ref().unwrap()
+            };
+            let dx = solvers::Cholesky::try_new_with_symbolic(
+                sym.clone(),
+                hessian.as_ref(),
+                faer::Side::Lower,
+            )
+            .unwrap()
+            .solve(b);
+            // let dx = hessian.sp_cholesky(faer::Side::Lower).unwrap().solve(b);
+            // let dx = sparse_cholesky(&residuals, &jac);
             let duration = start.elapsed();
             println!("Time elapsed in solve() is: {:?}", duration);
 

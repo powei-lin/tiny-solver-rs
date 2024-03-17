@@ -1,6 +1,9 @@
+use std::fs::File;
+use std::io::Write;
 use std::ops::Mul;
 
 use faer::prelude::SpSolver;
+use faer::sparse::linalg::solvers::SymbolicCholesky;
 
 pub enum LinearSolver {
     SparseCholesky,

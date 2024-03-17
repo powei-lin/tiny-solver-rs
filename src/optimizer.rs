@@ -53,7 +53,7 @@ pub struct OptimizerOptions {
 impl Default for OptimizerOptions {
     fn default() -> Self {
         OptimizerOptions {
-            max_iteration: 500,
+            max_iteration: 100,
             linear_solver_type: LinearSolver::SparseCholesky,
             verbosity_level: 0,
             min_abs_error_decrease_threshold: 1e-5,
