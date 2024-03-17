@@ -35,17 +35,17 @@ cargo add tiny-solver
 Under development.
 
 ## Example
+### M3500 dataset
+<img src="docs/m3500_rs.png" width="300" alt="m3500 dataset rust result.">
 
-### python
 ```sh
 git clone https://github.com/powei-lin/tiny-solver-rs.git
 cd tiny-solver-rs
+
+# run rust version
+cargo run -r --example m3500_benchmar
+
+# run python version
 pip install tiny-solver matplotlib
 python3 examples/python/m3500.py
-```
-### rust
-```sh
-git clone https://github.com/powei-lin/tiny-solver-rs.git
-cd tiny-solver-rs
-cargo run -r --example m3500_benchmar
 ```
