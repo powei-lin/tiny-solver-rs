@@ -1,16 +1,22 @@
 import tiny_solver
-from tiny_solver import GaussNewtonOptimizer, Problem
-from tiny_solver.factors import PriorFactor, CostFactorSE2
+from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions
+from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 import numpy as np
 
 def main():
     print(f"{tiny_solver.__version__=}")
     print(dir(tiny_solver))
+    
+    print(dir(LinearSolver.SparseCholesky))
+    opt_option = OptimizerOptions(linear_solver_type=LinearSolver.SparseQR, max_iteration=12,verbosity_level=1)
+    print(opt_option)
+    exit()
     # print(tiny_solver.sum_as_string(1, 2))
+
     # tiny_solver.mult(np.zeros((1, 2)))
     # a = tiny_solver.Dual64()
     # print(a.first_derivative)
-    b = CostFactorSE2(1.0, 2.0, 3.0)
+    b = BetweenFactorSE2(1.0, 2.0, 3.0)
     # print("factor module\n", dir(factors))
     # b = Costf(1.0, 2.0, 3.0)
 
@@ -30,6 +36,6 @@ def main():
     # d.ttt()
     # tiny_solver.te(d)
     optimizer = GaussNewtonOptimizer()
-    optimizer.optimize(problem, {"aa": np.array([123, 2, 3, 4], dtype=np.float64)})
+    # optimizer.optimize(problem, {"aa": np.array([123, 2, 3, 4], dtype=np.float64)})
 if __name__ == "__main__":
     main()

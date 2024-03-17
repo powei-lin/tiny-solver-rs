@@ -1,6 +1,7 @@
 from typing import List, Tuple, Dict
-import numpy as np
+from enum import Enum
 
+import numpy as np
 
 class Problem:
     def __init__(self) -> None: ...
@@ -9,3 +10,18 @@ class Problem:
 class GaussNewtonOptimizer:
     def __init__(self) -> None: ...
     def optimize(self, problem: Problem, init_values: Dict[str, np.ndarray]) -> None: ...
+
+class LinearSolver(Enum):
+    SparseCholesky = ...
+    SparseQR = ...
+
+class OptimizerOptions:
+    def __init__(
+        self,
+        max_iteration: int,
+        linear_solver_type: LinearSolver,
+        verbosity_level: int,
+        min_abs_error_decrease_threshold: float,
+        min_rel_error_decrease_threshold: float,
+        min_error_threshold: float,
+    ) -> None: ...

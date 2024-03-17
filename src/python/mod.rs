@@ -7,6 +7,7 @@ mod py_factors;
 mod py_optimizer;
 mod py_problem;
 
+/// For factors submodule
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     let child_module = PyModule::new(py, "factors")?;
     child_module.add_class::<BetweenFactorSE2>()?;
@@ -23,6 +24,8 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<Problem>()?;
+    m.add_class::<LinearSolver>()?;
+    m.add_class::<OptimizerOptions>()?;
     m.add_class::<GaussNewtonOptimizer>()?;
     register_child_module(_py, m)?;
 

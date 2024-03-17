@@ -6,7 +6,7 @@ use pyo3::types::PyDict;
 
 use crate::optimizer::Optimizer;
 use crate::problem::Problem;
-use crate::GaussNewtonOptimizer;
+use crate::{GaussNewtonOptimizer, LinearSolver, OptimizerOptions};
 
 #[pymethods]
 impl GaussNewtonOptimizer {
@@ -36,5 +36,35 @@ impl GaussNewtonOptimizer {
             .map(|(k, v)| (k.to_string(), v.to_pyarray(py).to_owned().into()))
             .collect();
         Ok(output_d)
+    }
+}
+
+#[pymethods]
+impl OptimizerOptions {
+    #[new]
+    #[pyo3(signature = (
+        max_iteration=100,
+        linear_solver_type=LinearSolver::SparseCholesky,
+        verbosity_level=0,
+        min_abs_error_decrease_threshold=1e-5,
+        min_rel_error_decrease_threshold=1e-5,
+        min_error_threshold=1e-8,
+    ))]
+    pub fn new(
+        max_iteration: usize,
+        linear_solver_type: LinearSolver,
+        verbosity_level: usize,
+        min_abs_error_decrease_threshold: f64,
+        min_rel_error_decrease_threshold: f64,
+        min_error_threshold: f64,
+    ) -> Self {
+        OptimizerOptions {
+            max_iteration,
+            linear_solver_type,
+            verbosity_level,
+            min_abs_error_decrease_threshold,
+            min_rel_error_decrease_threshold,
+            min_error_threshold,
+        }
     }
 }

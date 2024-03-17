@@ -2,7 +2,10 @@ use std::ops::Mul;
 
 use faer::prelude::SpSolver;
 use faer::sparse::linalg::solvers;
+use pyo3::prelude::*;
 
+#[derive(Clone)]
+#[pyclass]
 pub enum LinearSolver {
     SparseCholesky,
     SparseQR,
