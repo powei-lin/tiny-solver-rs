@@ -17,19 +17,20 @@ impl GaussNewtonOptimizer {
     }
 
     #[pyo3(name = "optimize")]
+    #[pyo3(signature=(problem, initial_values, optimizer_options=None))]
     pub fn optimize_py(
         &self,
         py: Python<'_>,
         problem: &Problem,
         initial_values: &PyDict,
+        optimizer_options: Option<OptimizerOptions>,
     ) -> PyResult<HashMap<String, Py<PyArray2<f64>>>> {
         let init_values: HashMap<String, PyReadonlyArray1<f64>> = initial_values.extract().unwrap();
         let init_values: HashMap<String, nalgebra::DVector<f64>> = init_values
             .iter()
             .map(|(k, v)| (k.to_string(), v.as_matrix().column(0).into()))
             .collect();
-        // println!("{}", initial_values);
-        let result = self.optimize(problem, &init_values, None);
+        let result = self.optimize(problem, &init_values, optimizer_options);
 
         let output_d: HashMap<String, Py<PyArray2<f64>>> = result
             .iter()

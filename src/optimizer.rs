@@ -44,6 +44,7 @@ pub enum SolverStatus {
 }
 
 #[pyclass]
+#[derive(Clone)]
 pub struct OptimizerOptions {
     pub max_iteration: usize,
     pub linear_solver_type: LinearSolver,

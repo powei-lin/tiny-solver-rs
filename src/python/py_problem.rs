@@ -42,14 +42,4 @@ impl Problem {
 
         Ok(())
     }
-
-    #[getter]
-    pub fn get_num(&self) -> PyResult<usize> {
-        Ok(self.thread_num)
-    }
-    #[setter]
-    pub fn set_num(&mut self, value: usize) -> PyResult<()> {
-        self.thread_num = value;
-        Ok(())
-    }
 }
