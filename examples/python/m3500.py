@@ -8,7 +8,7 @@ from tiny_solver import GaussNewtonOptimizer, Problem
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 
 
-def load_g2o(file_path: str)-> Tuple[Problem, Dict[str, np.ndarray]]:
+def load_g2o(file_path: str) -> Tuple[Problem, Dict[str, np.ndarray]]:
     init_values = {}
     factor_graph = Problem()
     vertex_num = 4000
@@ -40,13 +40,11 @@ def load_g2o(file_path: str)-> Tuple[Problem, Dict[str, np.ndarray]]:
                 y = float(items[3])
                 theta = float(items[4])
 
-
                 init_values[point_id] = np.array([theta, x, y], dtype=np.float64)
             else:
                 print(items)
                 break
     return factor_graph, init_values
-
 
 
 def show_pose(init_values, color):
