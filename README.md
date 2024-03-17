@@ -39,7 +39,7 @@ Under development.
 ```sh
 git clone https://github.com/powei-lin/tiny-solver-rs.git
 cd tiny-solver-rs
-pip install tiny-solver
+pip install tiny-solver matplotlib
 python3 examples/python/m3500.py
 ```
 ### rust
