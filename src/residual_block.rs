@@ -41,9 +41,6 @@ impl ResidualBlock {
             });
         (residual, jacobian)
     }
-    fn loss(residual: &na::DVector<f64>){
-        
-    }
 }
 
 fn get_variable_rows(variable_rows: &[usize]) -> Vec<Vec<usize>> {
