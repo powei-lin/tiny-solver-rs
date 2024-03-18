@@ -1,4 +1,4 @@
-use pyo3::{exceptions::PyTypeError, prelude::*};
+use pyo3::prelude::*;
 
 use crate::loss_functions::*;
 

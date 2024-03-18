@@ -35,13 +35,14 @@ impl ResidualBlock {
             })
             .collect();
         let residual_with_jacobian = self.factor.residual_func(&params_with_dual);
-        let residual = residual_with_jacobian.map(|x| x.re);
+        let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
         let jacobian =
             na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
                 jacobian[r][c]
             });
+        self.loss_func.weight_residual_in_place(&mut residual);
         (residual, jacobian)
     }
 }
