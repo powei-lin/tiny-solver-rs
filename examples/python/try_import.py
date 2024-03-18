@@ -1,6 +1,7 @@
 import tiny_solver
 from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
+from tiny_solver.loss_functions import HuberLoss
 import numpy as np
 
 
@@ -11,6 +12,8 @@ def main():
     print(dir(LinearSolver.SparseCholesky))
     opt_option = OptimizerOptions(linear_solver_type=LinearSolver.SparseQR, max_iteration=12, verbosity_level=1)
     print(opt_option)
+    loss = HuberLoss()
+    print(loss)
     exit()
     # print(tiny_solver.sum_as_string(1, 2))
 
