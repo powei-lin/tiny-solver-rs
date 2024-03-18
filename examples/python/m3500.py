@@ -11,13 +11,10 @@ from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 def load_g2o(file_path: str) -> Tuple[Problem, Dict[str, np.ndarray]]:
     init_values = {}
     factor_graph = Problem()
-    vertex_num = 4000
     with open(file_path) as ifile:
         for line in ifile.readlines():
             items = line[:-1].split(" ")
             if items[0] == "EDGE_SE2":
-                if int(items[1]) > vertex_num or int(items[2]) > vertex_num:
-                    continue
                 point_id0 = f"x{int(items[1])}"
                 point_id1 = f"x{int(items[2])}"
                 items_float = [float(i) for i in items[3:]]
@@ -33,8 +30,6 @@ def load_g2o(file_path: str) -> Tuple[Problem, Dict[str, np.ndarray]]:
                 factor = BetweenFactorSE2(dx, dy, dtheta)
                 factor_graph.add_residual_block(3, [(point_id0, 3), (point_id1, 3)], factor)
             elif items[0] == "VERTEX_SE2":
-                if int(items[1]) > vertex_num:
-                    continue
                 point_id = f"x{int(items[1])}"
                 x = float(items[2])
                 y = float(items[3])
