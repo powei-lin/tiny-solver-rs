@@ -5,7 +5,8 @@ use crate::loss_functions::*;
 #[pymethods]
 impl HuberLoss {
     #[new]
-    pub fn new() -> Self {
-        HuberLoss {}
+    #[pyo3(signature=(scale=1.0))]
+    pub fn new(scale: f64) -> Self {
+        HuberLoss { scale }
     }
 }

@@ -39,7 +39,7 @@ impl Problem {
             dim_residual,
             variable_key_size_list,
             convert_pyany_to_factor(pyfactor).unwrap(),
-            Box::new(HuberLoss {}),
+            Box::new(HuberLoss { scale: 1.0 }),
         );
 
         Ok(())

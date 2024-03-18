@@ -12,7 +12,7 @@ def main():
     print(dir(LinearSolver.SparseCholesky))
     opt_option = OptimizerOptions(linear_solver_type=LinearSolver.SparseQR, max_iteration=12, verbosity_level=1)
     print(opt_option)
-    loss = HuberLoss()
+    loss = HuberLoss(1.0)
     print(loss)
     exit()
     # print(tiny_solver.sum_as_string(1, 2))

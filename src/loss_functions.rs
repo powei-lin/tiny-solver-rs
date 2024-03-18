@@ -1,5 +1,6 @@
 use std::{borrow::Borrow, ops::Mul};
 
+use na::ComplexField;
 use nalgebra as na;
 use pyo3::prelude::*;
 
@@ -14,18 +15,22 @@ pub trait Loss: Send + Sync {
 
 #[pyclass]
 #[derive(Debug, Clone)]
-pub struct HuberLoss {}
+pub struct HuberLoss {
+    pub scale: f64,
+}
 impl HuberLoss {
-    fn weight(err: f64) -> f64 {
-        // return (err < k_) ? 1.0 : (k_ / std::fabs(err));
-        1.0
+    fn weight(&self, err: f64) -> f64 {
+        if err < self.scale {
+            1.0
+        } else {
+            self.scale / err.abs()
+        }
     }
 }
 
 impl Loss for HuberLoss {
     fn weight_residual_in_place(&self, residual: &mut na::DVector<f64>) {
-        let sqrt_weight = HuberLoss::weight(residual.norm()).sqrt();
-        // println!("wwwwwww");
+        let sqrt_weight = self.weight(residual.norm()).sqrt();
         *residual = residual.clone().mul(sqrt_weight);
     }
     fn weight_residual_jacobian_in_place(
