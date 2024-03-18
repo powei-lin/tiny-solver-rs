@@ -1,6 +1,7 @@
 pub mod factors;
 pub mod gauss_newton_optimizer;
 pub mod linear;
+pub mod loss_functions;
 pub mod optimizer;
 pub mod problem;
 pub mod python;

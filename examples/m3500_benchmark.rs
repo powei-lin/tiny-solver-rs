@@ -5,7 +5,9 @@ use std::time::Instant;
 use nalgebra as na;
 use plotters::prelude::*;
 
-use tiny_solver::{factors, gauss_newton_optimizer, optimizer::Optimizer, problem};
+use tiny_solver::{
+    factors, gauss_newton_optimizer, loss_functions::HuberLoss, optimizer::Optimizer, problem,
+};
 // use tiny_solver::{gauss_newton_optimizer, optimizer::Optimizer, problem, residual_block, factors};
 
 fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f64>>) {
@@ -32,7 +34,12 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
                     dy: dy,
                     dtheta: dtheta,
                 };
-                problem.add_residual_block(3, vec![(id0, 3), (id1, 3)], Box::new(edge));
+                problem.add_residual_block(
+                    3,
+                    vec![(id0, 3), (id1, 3)],
+                    Box::new(edge),
+                    Box::new(HuberLoss {}),
+                );
             }
             _ => {
                 println!("err");
@@ -43,7 +50,12 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
     let origin_factor = factors::PriorFactor {
         v: na::dvector![0.0, 0.0, 0.0],
     };
-    problem.add_residual_block(3, vec![("x0".to_string(), 3)], Box::new(origin_factor));
+    problem.add_residual_block(
+        3,
+        vec![("x0".to_string(), 3)],
+        Box::new(origin_factor),
+        Box::new(HuberLoss {}),
+    );
     (problem, init_values)
 }
 

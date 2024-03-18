@@ -1,21 +1,30 @@
 use pyo3::prelude::*;
 
 use crate::factors::*;
+use crate::loss_functions::*;
 use crate::*;
 
 mod py_factors;
+mod py_loss_functions;
 mod py_optimizer;
 mod py_problem;
 
-/// For factors submodule
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
-    let child_module = PyModule::new(py, "factors")?;
-    child_module.add_class::<BetweenFactorSE2>()?;
-    child_module.add_class::<PriorFactor>()?;
-    parent_module.add_submodule(child_module)?;
+    // For factors submodule
+    let factors_module = PyModule::new(py, "factors")?;
+    factors_module.add_class::<BetweenFactorSE2>()?;
+    factors_module.add_class::<PriorFactor>()?;
+    parent_module.add_submodule(factors_module)?;
     py.import("sys")?
         .getattr("modules")?
-        .set_item("tiny_solver.factors", child_module)?;
+        .set_item("tiny_solver.factors", factors_module)?;
+
+    let loss_functions_module = PyModule::new(py, "loss_functions")?;
+    loss_functions_module.add_class::<HuberLoss>()?;
+    parent_module.add_submodule(loss_functions_module)?;
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("tiny_solver.loss_functions", loss_functions_module)?;
     Ok(())
 }
 

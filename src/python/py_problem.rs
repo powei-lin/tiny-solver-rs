@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 use crate::factors::*;
+use crate::loss_functions::*;
 use crate::problem::Problem;
 
 fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
@@ -38,6 +39,7 @@ impl Problem {
             dim_residual,
             variable_key_size_list,
             convert_pyany_to_factor(pyfactor).unwrap(),
+            Box::new(HuberLoss {}),
         );
 
         Ok(())

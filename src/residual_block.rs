@@ -1,12 +1,15 @@
 use nalgebra as na;
+use rayon::prelude::*;
 
 use crate::factors::Factor;
+use crate::loss_functions::Loss;
 
 pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
     pub factor: Box<dyn Factor + Send>,
+    pub loss_func: Box<dyn Loss + Send>,
 }
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
@@ -15,7 +18,7 @@ impl ResidualBlock {
         let variable_row_idx_vec = get_variable_rows(&variable_rows);
         let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
         let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|(i, param)| {
                 na::DVector::from_row_iterator(
