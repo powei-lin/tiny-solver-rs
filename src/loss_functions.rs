@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, ops::Mul};
+use std::{borrow::Borrow, ops::{DerefMut, Mul}};
 
 use na::ComplexField;
 use nalgebra as na;
@@ -9,7 +9,7 @@ pub trait Loss: Send + Sync {
     fn weight_residual_jacobian_in_place(
         &self,
         residual: &mut na::DVector<f64>,
-        jac: &mut na::DVector<f64>,
+        jac: &mut na::DMatrix<f64>,
     );
 }
 
@@ -36,7 +36,10 @@ impl Loss for HuberLoss {
     fn weight_residual_jacobian_in_place(
         &self,
         residual: &mut na::DVector<f64>,
-        jac: &mut na::DVector<f64>,
+        jac: &mut na::DMatrix<f64>,
     ) {
+        let sqrt_weight = self.weight(residual.norm()).sqrt();
+        *residual = residual.clone().mul(sqrt_weight);
+        *jac = jac.clone().mul(sqrt_weight);
     }
 }
