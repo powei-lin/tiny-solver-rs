@@ -4,7 +4,7 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tiny_solver import GaussNewtonOptimizer, Problem
+from tiny_solver import GaussNewtonOptimizer, Problem, OptimizerOptions
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 from tiny_solver.loss_functions import HuberLoss
 
@@ -62,8 +62,9 @@ def main():
         plt.figure(figsize=(8, 8))
         show_pose(init_values, "red")
 
+    optimizer_option = OptimizerOptions(max_iteration=50)
     start_time = perf_counter()
-    init_values = solver.optimize(factor_graph, init_values)
+    init_values = solver.optimize(factor_graph, init_values, optimizer_option)
     end_time = perf_counter()
     print(f"{solver.__class__.__name__} takes {end_time-start_time:.3f} sec")
     if draw:
