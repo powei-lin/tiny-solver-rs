@@ -15,9 +15,15 @@ pub trait Loss: Send + Sync {
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct HuberLoss {
-    pub scale: f64,
+    scale: f64,
 }
 impl HuberLoss {
+    pub fn new(scale: f64) -> Self {
+        if scale <= 0.0 {
+            panic!("scale needs to be larger than zero");
+        }
+        HuberLoss { scale }
+    }
     fn weight(&self, abs_err: f64) -> f64 {
         if abs_err < self.scale {
             1.0

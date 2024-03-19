@@ -38,7 +38,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
                     3,
                     vec![(id0, 3), (id1, 3)],
                     Box::new(edge),
-                    Some(Box::new(HuberLoss { scale: 1.0 })),
+                    Some(Box::new(HuberLoss::new(1.0))),
                 );
             }
             _ => {
@@ -54,7 +54,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
         3,
         vec![("x0".to_string(), 3)],
         Box::new(origin_factor),
-        Some(Box::new(HuberLoss { scale: 1.0 })),
+        Some(Box::new(HuberLoss::new(1.0))),
     );
     (problem, init_values)
 }
