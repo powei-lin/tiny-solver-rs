@@ -1,9 +1,12 @@
 import tiny_solver
-from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions
+from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions, first_derivative_test
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
 from tiny_solver.loss_functions import HuberLoss
 import numpy as np
 
+def f(x: np.ndarray):
+    print("py ", x)
+    return np.array([2*x[0], x[1]*x[1]])
 
 def main():
     print(f"{tiny_solver.__version__=}")
@@ -14,6 +17,9 @@ def main():
     print(opt_option)
     loss = HuberLoss(1.0)
     print(loss)
+    a = np.array([1.0, 2.0])
+    j = first_derivative_test(f, a)
+    print(j)
     exit()
     # print(tiny_solver.sum_as_string(1, 2))
 

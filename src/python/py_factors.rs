@@ -1,4 +1,4 @@
-use num_dual::{try_first_derivative, Dual64};
+use num_dual::{try_first_derivative, Dual64, DualDVec64};
 use numpy::PyReadonlyArray1;
 use pyo3::{exceptions::PyTypeError, prelude::*};
 
@@ -26,34 +26,34 @@ impl PriorFactor {
     }
 }
 
-#[pyclass(name = "Dual64")]
+#[pyclass(name = "DualDVec64")]
 #[derive(Clone, Debug)]
-pub struct PyDual64(Dual64);
+pub struct PyDualDVec64(DualDVec64);
 #[pymethods]
-impl PyDual64 {
+impl PyDualDVec64 {
     #[new]
-    pub fn new(re: f64, eps: f64) -> Self {
-        Self(Dual64::new(re, eps))
-    }
-
-    #[getter]
-    pub fn get_first_derivative(&self) -> f64 {
-        self.0.eps
+    pub fn new(re: f64) -> Self {
+        Self(DualDVec64::from_re(re))
     }
 }
-#[pyfunction]
-pub fn first_derivative(f: &PyAny, x: f64) -> PyResult<(f64, f64)> {
-    let g = |x| {
-        let res = f.call1((PyDual64::from(x),))?;
-        if let Ok(res) = res.extract::<PyDual64>() {
-            Ok(res.0)
-        } else {
-            Err(PyErr::new::<PyTypeError, _>(
-                "argument 'f' must return a scalar. For vector functions use 'jacobian' instead."
-                    .to_string(),
-            ))
-        }
-    };
-    Ok((1.0, 2.0))
-    // try_first_derivative(g, x)
-}
+// #[pyfunction]
+// pub fn first_derivative_test(f: &PyAny, x: f64) -> PyResult<(f64, f64)> {
+//     f.call1((1.0, ));
+//     // let g = |x| {
+//     //     println!("Aa");
+//     //     let res = f.call1((Dua::from(x),))?;
+//     //     if let Ok(res) = res.extract::<PyDual64>() {
+//     //         println!("abc {:?}", res.0);
+//     //         Ok(res.0)
+//     //     } else {
+//     //         println!("eeeeeee");
+//     //         Err(PyErr::new::<PyTypeError, _>(
+//     //             "argument 'f' must return a scalar. For vector functions use 'jacobian' instead."
+//     //                 .to_string(),
+//     //         ))
+//     //     }
+//     // };
+//     // let _ = g(PyDual64::new(1.0, 0.0));
+//     Ok((1.0, 2.0))
+//     // try_first_derivative(g, x)
+// }

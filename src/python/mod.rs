@@ -8,6 +8,7 @@ mod py_factors;
 mod py_loss_functions;
 mod py_optimizer;
 mod py_problem;
+use self::py_factors::*;
 
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     // For factors submodule
@@ -36,6 +37,7 @@ pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add_class::<LinearSolver>()?;
     m.add_class::<OptimizerOptions>()?;
     m.add_class::<GaussNewtonOptimizer>()?;
+    m.add_class::<PyDualDVec64>()?;
     register_child_module(_py, m)?;
 
     Ok(())

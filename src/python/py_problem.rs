@@ -55,7 +55,6 @@ impl Problem {
             convert_pyany_to_factor(pyfactor).unwrap(),
             convert_pyany_to_loss_function(pyloss_func).unwrap(),
         );
-
         Ok(())
     }
 }
