@@ -1,12 +1,15 @@
 use nalgebra as na;
+use rayon::prelude::*;
 
 use crate::factors::Factor;
+use crate::loss_functions::Loss;
 
 pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
     pub factor: Box<dyn Factor + Send>,
+    pub loss_func: Option<Box<dyn Loss + Send>>,
 }
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
@@ -15,7 +18,7 @@ impl ResidualBlock {
         let variable_row_idx_vec = get_variable_rows(&variable_rows);
         let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
         let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|(i, param)| {
                 na::DVector::from_row_iterator(
@@ -32,13 +35,16 @@ impl ResidualBlock {
             })
             .collect();
         let residual_with_jacobian = self.factor.residual_func(&params_with_dual);
-        let residual = residual_with_jacobian.map(|x| x.re);
+        let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
-        let jacobian =
+        let mut jacobian =
             na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
                 jacobian[r][c]
             });
+        if let Some(loss_func) = self.loss_func.as_ref() {
+            loss_func.weight_residual_jacobian_in_place(&mut residual, &mut jacobian);
+        }
         (residual, jacobian)
     }
 }

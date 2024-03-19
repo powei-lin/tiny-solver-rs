@@ -7,7 +7,7 @@ use nalgebra as na;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
-use crate::{factors, residual_block};
+use crate::{factors, loss_functions, residual_block};
 
 #[pyclass]
 pub struct Problem {
@@ -30,6 +30,7 @@ impl Problem {
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
         factor: Box<dyn factors::Factor + Send>,
+        loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
             dim_residual,
@@ -39,6 +40,7 @@ impl Problem {
                 .map(|(x, _)| x.to_string())
                 .collect(),
             factor,
+            loss_func,
         });
         for (key, variable_dimesion) in variable_key_size_list {
             if !self.variable_name_to_col_idx_dict.contains_key(&key) {
