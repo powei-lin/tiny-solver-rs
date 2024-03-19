@@ -26,11 +26,11 @@ cargo add tiny-solver
 - [x] ~~Sparse QR~~, Sparse Cholesky using [faer](https://github.com/sarah-ek/faer-rs)
 - [x] GaussNewtonOptimizer
 - [x] Multithreading jacobian
+- [x] loss function (Huber)
 
 #### TODO
 - [ ] LevenbergMarquardtOptimizer
 - [ ] information matrix
-- [ ] loss function
 - [ ] factor in python
 
 ## Usage
