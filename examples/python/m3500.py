@@ -6,6 +6,7 @@ import numpy as np
 
 from tiny_solver import GaussNewtonOptimizer, Problem
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2
+from tiny_solver.loss_functions import HuberLoss
 
 
 def load_g2o(file_path: str) -> Tuple[Problem, Dict[str, np.ndarray]]:
@@ -28,7 +29,7 @@ def load_g2o(file_path: str) -> Tuple[Problem, Dict[str, np.ndarray]]:
                 i11, i12, i13, i22, i23, i33 = items_float[3:]
                 matrix_i = np.array([[i11, i12, i13], [i12, i22, i23], [i13, i23, i33]])
                 factor = BetweenFactorSE2(dx, dy, dtheta)
-                factor_graph.add_residual_block(3, [(point_id0, 3), (point_id1, 3)], factor)
+                factor_graph.add_residual_block(3, [(point_id0, 3), (point_id1, 3)], factor, HuberLoss())
             elif items[0] == "VERTEX_SE2":
                 point_id = f"x{int(items[1])}"
                 x = float(items[2])
@@ -53,7 +54,7 @@ def main():
     factor_graph, init_values = load_g2o(file_path)
 
     prior_factor = PriorFactor(np.zeros(3))
-    factor_graph.add_residual_block(3, [("x0", 3)], prior_factor)
+    factor_graph.add_residual_block(3, [("x0", 3)], prior_factor, None)
     solver = GaussNewtonOptimizer()
     # gn = LevenbergMarquardtOptimizer()
     draw = True

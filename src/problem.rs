@@ -30,7 +30,7 @@ impl Problem {
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
         factor: Box<dyn factors::Factor + Send>,
-        loss_func: Box<dyn loss_functions::Loss + Send>,
+        loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) {
         self.residual_blocks.push(residual_block::ResidualBlock {
             dim_residual,

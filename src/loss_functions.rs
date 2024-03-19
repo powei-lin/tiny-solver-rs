@@ -1,6 +1,5 @@
-use std::{borrow::Borrow, ops::{DerefMut, Mul}};
+use std::ops::Mul;
 
-use na::ComplexField;
 use nalgebra as na;
 use pyo3::prelude::*;
 

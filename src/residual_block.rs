@@ -9,7 +9,7 @@ pub struct ResidualBlock {
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
     pub factor: Box<dyn Factor + Send>,
-    pub loss_func: Box<dyn Loss + Send>,
+    pub loss_func: Option<Box<dyn Loss + Send>>,
 }
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
@@ -42,7 +42,9 @@ impl ResidualBlock {
             na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
                 jacobian[r][c]
             });
-        self.loss_func.weight_residual_jacobian_in_place(&mut residual, &mut jacobian);
+        if let Some(loss_func) = self.loss_func.as_ref() {
+            loss_func.weight_residual_jacobian_in_place(&mut residual, &mut jacobian);
+        }
         (residual, jacobian)
     }
 }

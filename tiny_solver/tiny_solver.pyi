@@ -3,9 +3,14 @@ from enum import Enum
 
 import numpy as np
 
+from tiny_solver.factors import Factor
+from tiny_solver.loss_functions import Loss
+
 class Problem:
     def __init__(self) -> None: ...
-    def add_residual_block(self, dim_residual: int, variable_key_size_list: List[Tuple[str, int]], factor) -> None: ...
+    def add_residual_block(
+        self, dim_residual: int, variable_key_size_list: List[Tuple[str, int]], factor: Factor, loss: Optional[Loss]
+    ) -> None: ...
 
 class GaussNewtonOptimizer:
     def __init__(self) -> None: ...

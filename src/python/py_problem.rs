@@ -20,6 +20,19 @@ fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
         )),
     }
 }
+fn convert_pyany_to_loss_function(py_any: &PyAny) -> PyResult<Option<Box<dyn Loss + Send>>> {
+    let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
+    match factor_name.as_str() {
+        "HuberLoss" => {
+            let loss_func: HuberLoss = py_any.extract().unwrap();
+            Ok(Some(Box::new(loss_func)))
+        }
+        "NoneType" => Ok(None),
+        _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Unknown factor type",
+        )),
+    }
+}
 
 #[pymethods]
 impl Problem {
@@ -34,12 +47,13 @@ impl Problem {
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
         pyfactor: &PyAny,
+        pyloss_func: &PyAny,
     ) -> PyResult<()> {
         self.add_residual_block(
             dim_residual,
             variable_key_size_list,
             convert_pyany_to_factor(pyfactor).unwrap(),
-            Box::new(HuberLoss { scale: 1.0 }),
+            convert_pyany_to_loss_function(pyloss_func).unwrap(),
         );
 
         Ok(())
