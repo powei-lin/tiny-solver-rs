@@ -1,12 +1,12 @@
 import tiny_solver
 from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions, first_derivative_test
-from tiny_solver.factors import PriorFactor, BetweenFactorSE2
+from tiny_solver.factors import PriorFactor, BetweenFactorSE2, PyFactor
 from tiny_solver.loss_functions import HuberLoss
 import numpy as np
 
 def f(x: np.ndarray):
-    print("py ", x)
-    return np.array([2*x[0], x[1]*x[1]])
+    # print("py ", x*x)
+    return np.array([2*x[0], x[1]*x[1]*x[1]])
 
 def main():
     print(f"{tiny_solver.__version__=}")

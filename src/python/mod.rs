@@ -15,6 +15,7 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
     let factors_module = PyModule::new(py, "factors")?;
     factors_module.add_class::<BetweenFactorSE2>()?;
     factors_module.add_class::<PriorFactor>()?;
+    // factors_module.add_class::<PyFactor>()?;
     parent_module.add_submodule(factors_module)?;
     py.import("sys")?
         .getattr("modules")?
@@ -37,7 +38,8 @@ pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add_class::<LinearSolver>()?;
     m.add_class::<OptimizerOptions>()?;
     m.add_class::<GaussNewtonOptimizer>()?;
-    m.add_class::<PyDualDVec64>()?;
+    m.add_function(wrap_pyfunction!(first_derivative_test, m)?)?;
+    // m.add_class::<PyDualDVec64>()?;
     register_child_module(_py, m)?;
 
     Ok(())
