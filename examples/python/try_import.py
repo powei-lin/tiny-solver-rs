@@ -8,6 +8,11 @@ def f(x: np.ndarray):
     # print("py ", x*x)
     return np.array([2*x[0], x[1]*x[1]*x[1]])
 
+def fa():
+    print("fa")
+    return 123
+
+
 def main():
     print(f"{tiny_solver.__version__=}")
     print(dir(tiny_solver))
@@ -18,8 +23,10 @@ def main():
     loss = HuberLoss(1.0)
     print(loss)
     a = np.array([1.0, 2.0])
-    j = first_derivative_test(f, a)
-    print(j)
+    # j = first_derivative_test(f, a)
+    # print(j)
+    a = PyFactor(f)
+    a.call_func()
     exit()
     # print(tiny_solver.sum_as_string(1, 2))
 

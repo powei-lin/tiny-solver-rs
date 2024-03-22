@@ -15,7 +15,7 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
     let factors_module = PyModule::new(py, "factors")?;
     factors_module.add_class::<BetweenFactorSE2>()?;
     factors_module.add_class::<PriorFactor>()?;
-    // factors_module.add_class::<PyFactor>()?;
+    factors_module.add_class::<PyFactor>()?;
     parent_module.add_submodule(factors_module)?;
     py.import("sys")?
         .getattr("modules")?
