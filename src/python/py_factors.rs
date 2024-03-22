@@ -1,9 +1,9 @@
 use num_dual::{python::PyDual64Dyn, Dual64, DualDVec64};
-use numpy::PyReadonlyArray1;
 use numpy::{PyArray, PyReadonlyArrayDyn};
+use numpy::{PyArray2, PyReadonlyArray1, ToPyArray};
 
 use nalgebra as na;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyList, PyTuple};
 use pyo3::{exceptions::PyTypeError, prelude::*};
 
 use crate::factors::*;
@@ -57,15 +57,19 @@ impl PyFactor {
     pub fn call_func(&self, py: Python) -> PyResult<()> {
         // self.func.call1(([],));
         // let a: na::DVector<f64> = x.as_matrix().column(0).into();
-        let p0 = PyDual64Dyn::from(num_dual::DualDVec64::new(
-            1.0,
-            num_dual::Derivative::some(na::dvector![1.0, 0.0]),
-        ));
-        let p1 = PyDual64Dyn::from(num_dual::DualDVec64::new(
-            1.0,
-            num_dual::Derivative::some(na::dvector![1.0, 0.0]),
-        ));
-        let result = self.func.call1(py, ([p0, p1],));
+        let p0 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
+        let p1 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
+        let params = vec![na::dvector![p0, p1]];
+        let pp = params[0]
+            .data
+            .as_vec()
+            .iter()
+            .map(|x| PyDual64Dyn::from(x.clone()))
+            .collect::<Vec<PyDual64Dyn>>();
+        // let pp = PyList::new(py, params);
+        // let pp = params[0].map(PyDual64Dyn::from);
+        // let py_params = params.iter().map(|x| x.map(PyDual64Dyn::from).to_owned().to_pyarray(py)).collect();
+        let result = self.func.call1(py, (pp,));
         // self.func.g(py)
         println!("{}", result.unwrap());
 
@@ -79,6 +83,9 @@ impl Factor for PyFactor {
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64> {
+        Python::with_gil(|py| {
+            self.func.call1(py, ());
+        });
         na::dvector![]
     }
 }
