@@ -4,3 +4,5 @@ __pycache__
 *.so
 .DS_Store
 .vscode/*
+.venv
+.pytest_cache
