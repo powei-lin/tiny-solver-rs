@@ -33,6 +33,12 @@ cargo add tiny-solver
 - [ ] LevenbergMarquardtOptimizer
 - [ ] information matrix
 
+## Benchmark
+| dataset | tiny-solver | gtsam   | minisam  |
+|---------|-------------|---------|----------|
+| m3500   | 161.1ms     | 130.7ms | 123.6 ms |
+|         |             |         |          |
+
 ## Usage
 Under development.
 
