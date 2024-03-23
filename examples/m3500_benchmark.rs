@@ -60,6 +60,9 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
 }
 
 fn main() {
+    // init logger
+    env_logger::init();
+
     let (problem, init_values) = read_g2o("tests/data/input_M3500_g2o.g2o");
     let init_points: Vec<(f64, f64)> = init_values.iter().map(|(_, v)| (v[1], v[2])).collect();
     let root_drawing_area = BitMapBackend::new("m3500_rs.png", (1024, 1024)).into_drawing_area();
