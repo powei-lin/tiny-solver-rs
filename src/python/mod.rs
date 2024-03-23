@@ -33,6 +33,7 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
 /// A Python module implemented in Rust.
 #[pymodule]
 pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
+    pyo3_log::init();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<Problem>()?;
     m.add_class::<LinearSolver>()?;

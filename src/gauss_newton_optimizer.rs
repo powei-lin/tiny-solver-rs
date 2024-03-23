@@ -1,4 +1,4 @@
-use log::{info, trace, warn};
+use log::trace;
 use std::time::Instant;
 
 use faer::sparse::linalg::solvers;

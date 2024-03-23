@@ -1,3 +1,4 @@
+import logging
 from time import perf_counter
 from typing import Dict, Tuple
 
@@ -50,6 +51,9 @@ def show_pose(init_values, color):
 
 
 def main():
+    FORMAT = '%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s'
+    logging.basicConfig(format=FORMAT)
+    logging.getLogger().setLevel(logging.INFO)
     file_path = "tests/data/input_M3500_g2o.g2o"
     factor_graph, init_values = load_g2o(file_path)
 

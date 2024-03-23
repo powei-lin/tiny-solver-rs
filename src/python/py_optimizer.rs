@@ -1,3 +1,4 @@
+use log::info;
 use std::collections::HashMap;
 
 use numpy::{PyArray2, PyReadonlyArray1, ToPyArray};
@@ -12,7 +13,7 @@ use crate::{GaussNewtonOptimizer, LinearSolver, OptimizerOptions};
 impl GaussNewtonOptimizer {
     #[new]
     pub fn new() -> Self {
-        println!("init GaussNewtonOptimizer");
+        info!("init GaussNewtonOptimizer");
         GaussNewtonOptimizer {}
     }
 
