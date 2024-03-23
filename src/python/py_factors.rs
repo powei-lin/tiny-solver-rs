@@ -1,9 +1,11 @@
 use num_dual::{python::PyDual64Dyn, Dual64, DualDVec64};
 use numpy::{PyArray, PyReadonlyArrayDyn};
 use numpy::{PyArray2, PyReadonlyArray1, ToPyArray};
+use std::collections::HashMap;
 
 use nalgebra as na;
-use pyo3::types::{PyList, PyTuple};
+use pyo3::types::{PyDict, PyList, PyTuple};
+
 use pyo3::{exceptions::PyTypeError, prelude::*};
 
 use crate::factors::*;
@@ -45,6 +47,7 @@ impl PriorFactor {
 #[derive(Debug, Clone)]
 pub struct PyFactor {
     pub func: Py<PyAny>,
+    // pub kwarg_names: Vec<String>
 }
 
 #[pymethods]
@@ -59,17 +62,49 @@ impl PyFactor {
         // let a: na::DVector<f64> = x.as_matrix().column(0).into();
         let p0 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
         let p1 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
-        let params = vec![na::dvector![p0, p1]];
-        let pp = params[0]
-            .data
-            .as_vec()
+        let params = vec![na::dvector![p0.clone(), p1.clone()], na::dvector![p0, p1]];
+        // let pp: HashMap::<String, Vec<PyDual64Dyn>> = params.iter().map(|param| param
+        //     .data
+        //     .as_vec()
+        //     .iter()
+        //     .map(|x| PyDual64Dyn::from(x.clone()))
+        //     .collect::<Vec<PyDual64Dyn>>()).zip(self.kwarg_names.iter()).map(|(v, k)|(k.to_string(), v) ).collect();
+        // let pp1: Vec<(String, Py<PyAny>)> = params.iter().map(|param| param
+        //     .data
+        //     .as_vec()
+        //     .iter()
+        //     .map(|x| PyDual64Dyn::from(x.clone()))
+        //     .collect::<Vec<PyDual64Dyn>>()).zip(self.kwarg_names.iter()).map(|(v, k)|(k.to_string(), v.into_py(py)) ).collect();
+        let pp1: Vec<Py<PyAny>> = params
             .iter()
-            .map(|x| PyDual64Dyn::from(x.clone()))
-            .collect::<Vec<PyDual64Dyn>>();
-        // let pp = PyList::new(py, params);
+            .map(|param| {
+                param
+                    .data
+                    .as_vec()
+                    .iter()
+                    .map(|x| PyDual64Dyn::from(x.clone()))
+                    .collect::<Vec<PyDual64Dyn>>()
+            })
+            .map(|x| x.into_py(py))
+            .collect();
+        // let pp1: Vec<PyDual64Dyn> = params[0]
+        //     .data
+        //     .as_vec()
+        //     .iter()
+        //     .map(|x| PyDual64Dyn::from(x.clone()))
+        //     .collect::<Vec<PyDual64Dyn>>();
+        // let ss = PyList::new(py, pp1);
+        let args = PyTuple::new(py, pp1);
+
+        // let mut pp = PyDict::from_sequence(py, pp1).unwrap();
+        // pp.set_item("x", pp1.into_py(py));
+        // let a = PyList::append(py, [pp1[0]]);
+        // let args = PyTuple::new(py, &pp);
         // let pp = params[0].map(PyDual64Dyn::from);
         // let py_params = params.iter().map(|x| x.map(PyDual64Dyn::from).to_owned().to_pyarray(py)).collect();
-        let result = self.func.call1(py, (pp,));
+        // let tt = (pp1, );
+        // println!("{:?}", tt);
+        let result = self.func.call1(py, args);
         // self.func.g(py)
         println!("{}", result.unwrap());
 

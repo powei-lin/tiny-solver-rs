@@ -33,6 +33,7 @@ path = "examples/m3500_benchmark.rs"
 python = ["num-dual/python"]
 
 [dev-dependencies]
+itertools = "0.12.1"
 plotters = "0.3.5"
 
 [profile.dev.package.faer]
