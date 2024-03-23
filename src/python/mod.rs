@@ -8,12 +8,14 @@ mod py_factors;
 mod py_loss_functions;
 mod py_optimizer;
 mod py_problem;
+use self::py_factors::*;
 
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     // For factors submodule
     let factors_module = PyModule::new(py, "factors")?;
     factors_module.add_class::<BetweenFactorSE2>()?;
     factors_module.add_class::<PriorFactor>()?;
+    factors_module.add_class::<PyFactor>()?;
     parent_module.add_submodule(factors_module)?;
     py.import("sys")?
         .getattr("modules")?

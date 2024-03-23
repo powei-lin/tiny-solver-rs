@@ -7,3 +7,6 @@ class BetweenFactorSE2(Factor):
 
 class PriorFactor(Factor):
     def __init__(self, x: np.ndarray) -> None: ...
+
+class PyFactor(Factor):
+    def __init__(self, func: callable) -> None: ...

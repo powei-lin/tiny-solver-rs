@@ -4,16 +4,22 @@ use crate::factors::*;
 use crate::loss_functions::*;
 use crate::problem::Problem;
 
-fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<Box<dyn Factor + Send>> {
+use super::PyFactor;
+
+fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<(bool, Box<dyn Factor + Send>)> {
     let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
     match factor_name.as_str() {
         "BetweenFactorSE2" => {
             let factor: BetweenFactorSE2 = py_any.extract().unwrap();
-            Ok(Box::new(factor))
+            Ok((false, Box::new(factor)))
         }
         "PriorFactor" => {
             let factor: PriorFactor = py_any.extract().unwrap();
-            Ok(Box::new(factor))
+            Ok((false, Box::new(factor)))
+        }
+        "PyFactor" => {
+            let factor: PyFactor = py_any.extract().unwrap();
+            Ok((true, Box::new(factor)))
         }
         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
             "Unknown factor type",
@@ -49,13 +55,16 @@ impl Problem {
         pyfactor: &PyAny,
         pyloss_func: &PyAny,
     ) -> PyResult<()> {
+        let (is_pyfactor, factor) = convert_pyany_to_factor(pyfactor).unwrap();
         self.add_residual_block(
             dim_residual,
             variable_key_size_list,
-            convert_pyany_to_factor(pyfactor).unwrap(),
+            factor,
             convert_pyany_to_loss_function(pyloss_func).unwrap(),
         );
-
+        if is_pyfactor {
+            self.has_py_factor()
+        }
         Ok(())
     }
 }

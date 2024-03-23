@@ -21,7 +21,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let opt_option = optimizer_option.unwrap_or_default();
 
         let mut last_err: f64 = 1.0;
-
         let mut symbolic_pattern: Option<solvers::SymbolicCholesky<usize>> = None;
 
         for i in 0..opt_option.max_iteration {
