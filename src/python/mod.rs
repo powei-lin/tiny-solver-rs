@@ -38,8 +38,6 @@ pub fn tiny_solver<'py>(_py: Python<'py>, m: &'py PyModule) -> PyResult<()> {
     m.add_class::<LinearSolver>()?;
     m.add_class::<OptimizerOptions>()?;
     m.add_class::<GaussNewtonOptimizer>()?;
-    m.add_function(wrap_pyfunction!(first_derivative_test, m)?)?;
-    // m.add_class::<PyDualDVec64>()?;
     register_child_module(_py, m)?;
 
     Ok(())

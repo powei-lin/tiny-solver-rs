@@ -47,7 +47,6 @@ impl PriorFactor {
 #[derive(Debug, Clone)]
 pub struct PyFactor {
     pub func: Py<PyAny>,
-    // pub kwarg_names: Vec<String>
 }
 
 #[pymethods]
@@ -55,54 +54,6 @@ impl PyFactor {
     #[new]
     pub fn new(f: Py<PyAny>) -> Self {
         PyFactor { func: f }
-    }
-
-    pub fn call_func(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // self.func.call1(([],));
-        // let a: na::DVector<f64> = x.as_matrix().column(0).into();
-        let p0 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
-        let p1 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
-        let params = vec![na::dvector![p0.clone(), p1.clone()], na::dvector![p0, p1]];
-        // let pp: HashMap::<String, Vec<PyDual64Dyn>> = params.iter().map(|param| param
-        //     .data
-        //     .as_vec()
-        //     .iter()
-        //     .map(|x| PyDual64Dyn::from(x.clone()))
-        //     .collect::<Vec<PyDual64Dyn>>()).zip(self.kwarg_names.iter()).map(|(v, k)|(k.to_string(), v) ).collect();
-        // let pp1: Vec<(String, Py<PyAny>)> = params.iter().map(|param| param
-        //     .data
-        //     .as_vec()
-        //     .iter()
-        //     .map(|x| PyDual64Dyn::from(x.clone()))
-        //     .collect::<Vec<PyDual64Dyn>>()).zip(self.kwarg_names.iter()).map(|(v, k)|(k.to_string(), v.into_py(py)) ).collect();
-        let py_params: Vec<Py<PyAny>> = params
-            .iter()
-            .map(|param| {
-                param
-                    .data
-                    .as_vec()
-                    .iter()
-                    .map(|x| PyDual64Dyn::from(x.clone()))
-                    .collect::<Vec<PyDual64Dyn>>()
-            })
-            .map(|x| x.into_py(py))
-            .collect();
-        let args = PyTuple::new(py, py_params);
-
-        let result = self.func.call1(py, args).unwrap();
-        let m = result.extract::<Vec<PyDual64Dyn>>(py).unwrap();
-        let m: Vec<num_dual::DualDVec64> = m
-            .iter()
-            .map(|x| <PyDual64Dyn as Clone>::clone(x).into())
-            .collect();
-        let m = na::DVector::from_vec(m);
-        // let a: num_dual::DualDVec64 = ;
-
-        // self.func.g(py)
-        println!("{} aaa {}", result, m[0]);
-
-        println!("fff");
-        Ok(result)
     }
 }
 
@@ -125,42 +76,13 @@ impl Factor for PyFactor {
                 .map(|x| x.into_py(py))
                 .collect();
             let args = PyTuple::new(py, py_params);
-            self.func.call1(py, args);
-        });
-        na::dvector![]
+            let result = self.func.call1(py, args);
+            let residual_py = result.unwrap().extract::<Vec<PyDual64Dyn>>(py).unwrap();
+            let residual_py: Vec<num_dual::DualDVec64> = residual_py
+                .iter()
+                .map(|x| <PyDual64Dyn as Clone>::clone(x).into())
+                .collect();
+            na::DVector::from_vec(residual_py)
+        })
     }
-}
-
-#[pyfunction]
-pub fn first_derivative_test(f: &PyAny, x: PyReadonlyArray1<f64>) -> PyResult<(f64, f64)> {
-    let a: na::DVector<f64> = x.as_matrix().column(0).into();
-    let p0 = PyDual64Dyn::from(num_dual::DualDVec64::new(
-        a[0],
-        num_dual::Derivative::some(na::dvector![1.0, 0.0]),
-    ));
-    let p1 = PyDual64Dyn::from(num_dual::DualDVec64::new(
-        a[1],
-        num_dual::Derivative::some(na::dvector![0.0, 1.0]),
-    ));
-    // let a = p.get_first_derivative().unwrap();
-    // println!("{:?}", a);
-    let rr = f.call1(([p0, p1],)).unwrap();
-    println!("{}", rr);
-    // let g = |x| {
-    //     println!("Aa");
-    //     let res = f.call1((Dua::from(x),))?;
-    //     if let Ok(res) = res.extract::<PyDual64>() {
-    //         println!("abc {:?}", res.0);
-    //         Ok(res.0)
-    //     } else {
-    //         println!("eeeeeee");
-    //         Err(PyErr::new::<PyTypeError, _>(
-    //             "argument 'f' must return a scalar. For vector functions use 'jacobian' instead."
-    //                 .to_string(),
-    //         ))
-    //     }
-    // };
-    // let _ = g(PyDual64::new(1.0, 0.0));
-    Ok((1.0, 2.0))
-    // try_first_derivative(g, x)
 }
