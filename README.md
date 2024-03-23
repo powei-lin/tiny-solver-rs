@@ -27,11 +27,11 @@ cargo add tiny-solver
 - [x] GaussNewtonOptimizer
 - [x] Multithreading jacobian
 - [x] loss function (Huber)
+- [x] Define factor in python
 
 #### TODO
 - [ ] LevenbergMarquardtOptimizer
 - [ ] information matrix
-- [ ] factor in python
 
 ## Usage
 Under development.
