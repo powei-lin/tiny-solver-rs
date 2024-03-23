@@ -1,12 +1,8 @@
-use num_dual::{python::PyDual64Dyn, Dual64, DualDVec64};
-use numpy::{PyArray, PyReadonlyArrayDyn};
-use numpy::{PyArray2, PyReadonlyArray1, ToPyArray};
-use std::collections::HashMap;
-
 use nalgebra as na;
-use pyo3::types::{PyDict, PyList, PyTuple};
-
-use pyo3::{exceptions::PyTypeError, prelude::*};
+use num_dual::python::PyDual64Dyn;
+use numpy::PyReadonlyArray1;
+use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::factors::*;
 
