@@ -28,17 +28,6 @@ impl PriorFactor {
     }
 }
 
-// #[pyclass(name = "DualDVec64")]
-// #[derive(Clone)]
-// pub struct PyDualDVec64(DualDVec64);
-// #[pymethods]
-// impl PyDualDVec64 {
-//     #[new]
-//     pub fn new(re: f64) -> Self {
-//         Self(DualDVec64::from_re(re))
-//     }
-// }
-
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct PyFactor {
@@ -58,6 +47,8 @@ impl Factor for PyFactor {
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64> {
+        // this can not be called with par_iter
+        // TODO find a way to deal with multi threading
         let residual_py = Python::with_gil(|py| -> PyResult<Vec<PyDual64Dyn>> {
             let py_params: Vec<Py<PyAny>> = params
                 .iter()
