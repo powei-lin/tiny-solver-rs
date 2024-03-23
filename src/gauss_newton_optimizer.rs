@@ -24,7 +24,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let mut symbolic_pattern: Option<solvers::SymbolicCholesky<usize>> = None;
 
         for i in 0..opt_option.max_iteration {
-            let (residuals, jac) = problem.compute_residual_and_jacobian(&params, true);
+            let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
             let current_error = residuals.norm_l2();
             println!("iter:{} total err:{}", i, current_error);
             if current_error < opt_option.min_error_threshold {

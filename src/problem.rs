@@ -15,6 +15,7 @@ pub struct Problem {
     pub total_residual_dimension: usize,
     residual_blocks: Vec<residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
+    _has_py_factor: bool,
 }
 impl Problem {
     pub fn new() -> Problem {
@@ -23,6 +24,7 @@ impl Problem {
             total_residual_dimension: 0,
             residual_blocks: Vec::<residual_block::ResidualBlock>::new(),
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
+            _has_py_factor: false,
         }
     }
     pub fn add_residual_block(
@@ -68,7 +70,6 @@ impl Problem {
     pub fn compute_residual_and_jacobian(
         &self,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
-        multi_threading: bool,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         // multi
         let total_residual: Arc<
@@ -81,8 +82,8 @@ impl Problem {
         let jacobian_list: Arc<Mutex<Vec<(usize, usize, f64)>>> =
             Arc::new(Mutex::new(Vec::<(usize, usize, f64)>::new()));
 
-        if multi_threading {
-            self.residual_blocks.par_iter().for_each(|residual_block| {
+        if self._has_py_factor {
+            self.residual_blocks.iter().for_each(|residual_block| {
                 self.compute_residual_and_jacobian_impl(
                     residual_block,
                     variable_key_value_map,
@@ -91,7 +92,7 @@ impl Problem {
                 )
             });
         } else {
-            self.residual_blocks.iter().for_each(|residual_block| {
+            self.residual_blocks.par_iter().for_each(|residual_block| {
                 self.compute_residual_and_jacobian_impl(
                     residual_block,
                     variable_key_value_map,
@@ -170,5 +171,8 @@ impl Problem {
                 jacobian_list.extend(local_jacobian_list);
             }
         }
+    }
+    pub fn has_py_factor(&mut self) {
+        self._has_py_factor = true
     }
 }

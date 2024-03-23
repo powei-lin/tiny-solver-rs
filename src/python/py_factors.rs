@@ -62,7 +62,7 @@ impl Factor for PyFactor {
         &self,
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64> {
-        Python::with_gil(|py| {
+        let residual_py = Python::with_gil(|py| -> PyResult<Vec<PyDual64Dyn>> {
             let py_params: Vec<Py<PyAny>> = params
                 .iter()
                 .map(|param| {
@@ -77,12 +77,14 @@ impl Factor for PyFactor {
                 .collect();
             let args = PyTuple::new(py, py_params);
             let result = self.func.call1(py, args);
-            let residual_py = result.unwrap().extract::<Vec<PyDual64Dyn>>(py).unwrap();
-            let residual_py: Vec<num_dual::DualDVec64> = residual_py
-                .iter()
-                .map(|x| <PyDual64Dyn as Clone>::clone(x).into())
-                .collect();
-            na::DVector::from_vec(residual_py)
-        })
+            let residual_py = result.unwrap().extract::<Vec<PyDual64Dyn>>(py);
+            residual_py
+        });
+        let residual_py: Vec<num_dual::DualDVec64> = residual_py
+            .unwrap()
+            .iter()
+            .map(|x| <PyDual64Dyn as Clone>::clone(x).into())
+            .collect();
+        na::DVector::from_vec(residual_py)
     }
 }
