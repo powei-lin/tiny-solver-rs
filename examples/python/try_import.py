@@ -4,9 +4,11 @@ from tiny_solver.factors import PriorFactor, BetweenFactorSE2, PyFactor
 from tiny_solver.loss_functions import HuberLoss
 import numpy as np
 
+
 def f(x: np.ndarray, y: np.ndarray):
     # print("py ", x*x)
-    return np.array([2*x[0], x[1]*x[1]*x[1], y[1]*4.0])
+    return np.array([2 * x[0], x[1] * x[1] * x[1], y[1] * 4.0])
+
 
 def fa():
     print("fa")
