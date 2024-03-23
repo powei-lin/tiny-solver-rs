@@ -27,19 +27,20 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         for i in 0..opt_option.max_iteration {
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
             let current_error = residuals.norm_l2();
-            // println!("iter:{} total err:{}", i, current_error);
+            trace!("iter:{} total err:{}", i, current_error);
+
             if current_error < opt_option.min_error_threshold {
-                // println!("error too low");
+                trace!("error too low");
                 break;
             }
             if i > 0 {
                 if last_err - current_error < opt_option.min_abs_error_decrease_threshold {
-                    // println!("abs low");
+                    trace!("absolute error decreas low");
                     break;
                 } else if (last_err - current_error) / last_err
                     < opt_option.min_rel_error_decrease_threshold
                 {
-                    // println!("rel low");
+                    trace!("reletive error decrease low");
                     break;
                 }
             }
@@ -48,7 +49,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             let start = Instant::now();
             let dx = sparse_cholesky(&residuals, &jac, &mut symbolic_pattern);
             let duration = start.elapsed();
-            trace!("Time elapsed in solve() is: {:?}", duration);
+            trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
             let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
             self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
