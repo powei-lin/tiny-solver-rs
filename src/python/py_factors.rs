@@ -57,7 +57,7 @@ impl PyFactor {
         PyFactor { func: f }
     }
 
-    pub fn call_func(&self, py: Python) -> PyResult<()> {
+    pub fn call_func(&self, py: Python) -> PyResult<Py<PyAny>> {
         // self.func.call1(([],));
         // let a: na::DVector<f64> = x.as_matrix().column(0).into();
         let p0 = num_dual::DualDVec64::new(1.0, num_dual::Derivative::some(na::dvector![1.0, 0.0]));
@@ -75,7 +75,7 @@ impl PyFactor {
         //     .iter()
         //     .map(|x| PyDual64Dyn::from(x.clone()))
         //     .collect::<Vec<PyDual64Dyn>>()).zip(self.kwarg_names.iter()).map(|(v, k)|(k.to_string(), v.into_py(py)) ).collect();
-        let pp1: Vec<Py<PyAny>> = params
+        let py_params: Vec<Py<PyAny>> = params
             .iter()
             .map(|param| {
                 param
@@ -87,29 +87,22 @@ impl PyFactor {
             })
             .map(|x| x.into_py(py))
             .collect();
-        // let pp1: Vec<PyDual64Dyn> = params[0]
-        //     .data
-        //     .as_vec()
-        //     .iter()
-        //     .map(|x| PyDual64Dyn::from(x.clone()))
-        //     .collect::<Vec<PyDual64Dyn>>();
-        // let ss = PyList::new(py, pp1);
-        let args = PyTuple::new(py, pp1);
+        let args = PyTuple::new(py, py_params);
 
-        // let mut pp = PyDict::from_sequence(py, pp1).unwrap();
-        // pp.set_item("x", pp1.into_py(py));
-        // let a = PyList::append(py, [pp1[0]]);
-        // let args = PyTuple::new(py, &pp);
-        // let pp = params[0].map(PyDual64Dyn::from);
-        // let py_params = params.iter().map(|x| x.map(PyDual64Dyn::from).to_owned().to_pyarray(py)).collect();
-        // let tt = (pp1, );
-        // println!("{:?}", tt);
-        let result = self.func.call1(py, args);
+        let result = self.func.call1(py, args).unwrap();
+        let m = result.extract::<Vec<PyDual64Dyn>>(py).unwrap();
+        let m: Vec<num_dual::DualDVec64> = m
+            .iter()
+            .map(|x| <PyDual64Dyn as Clone>::clone(x).into())
+            .collect();
+        let m = na::DVector::from_vec(m);
+        // let a: num_dual::DualDVec64 = ;
+
         // self.func.g(py)
-        println!("{}", result.unwrap());
+        println!("{} aaa {}", result, m[0]);
 
         println!("fff");
-        Ok(())
+        Ok(result)
     }
 }
 
@@ -119,7 +112,20 @@ impl Factor for PyFactor {
         params: &Vec<na::DVector<num_dual::DualDVec64>>,
     ) -> na::DVector<num_dual::DualDVec64> {
         Python::with_gil(|py| {
-            self.func.call1(py, ());
+            let py_params: Vec<Py<PyAny>> = params
+                .iter()
+                .map(|param| {
+                    param
+                        .data
+                        .as_vec()
+                        .iter()
+                        .map(|x| PyDual64Dyn::from(x.clone()))
+                        .collect::<Vec<PyDual64Dyn>>()
+                })
+                .map(|x| x.into_py(py))
+                .collect();
+            let args = PyTuple::new(py, py_params);
+            self.func.call1(py, args);
         });
         na::dvector![]
     }
