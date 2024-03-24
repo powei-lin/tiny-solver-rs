@@ -103,6 +103,10 @@ fn main() {
 ```
 
 ## Example
+### Basic example
+```sh
+cargo run -r --example small_problem
+```
 ### M3500 dataset
 <img src="docs/m3500_rs.png" width="300" alt="m3500 dataset rust result.">
 
