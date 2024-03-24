@@ -14,7 +14,7 @@ pub struct ResidualBlock {
 impl ResidualBlock {
     pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
         let variable_rows: Vec<usize> = params.iter().map(|x| x.shape().0).collect();
-        let dim_variable = variable_rows.iter().fold(0, |acc, x| acc + x);
+        let dim_variable = variable_rows.iter().sum::<usize>();
         let variable_row_idx_vec = get_variable_rows(&variable_rows);
         let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
         let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
