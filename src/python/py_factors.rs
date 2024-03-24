@@ -45,7 +45,7 @@ impl PyFactor {
 impl Factor for PyFactor {
     fn residual_func(
         &self,
-        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+        params: &[na::DVector<num_dual::DualDVec64>],
     ) -> na::DVector<num_dual::DualDVec64> {
         // this can not be called with par_iter
         // TODO find a way to deal with multi threading

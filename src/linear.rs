@@ -6,14 +6,11 @@ use pyo3::prelude::*;
 
 #[derive(Clone)]
 #[pyclass]
+#[derive(Default)]
 pub enum LinearSolver {
+    #[default]
     SparseCholesky,
     SparseQR,
-}
-impl Default for LinearSolver {
-    fn default() -> Self {
-        LinearSolver::SparseCholesky
-    }
 }
 
 pub fn sparse_cholesky(
@@ -48,6 +45,5 @@ pub fn sparse_qr(
     residuals: &faer::Mat<f64>,
     jacobians: &faer::sparse::SparseColMat<usize, f64>,
 ) -> faer::Mat<f64> {
-    let dx = jacobians.sp_qr().unwrap().solve(-residuals);
-    dx
+    jacobians.sp_qr().unwrap().solve(-residuals)
 }

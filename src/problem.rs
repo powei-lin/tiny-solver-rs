@@ -17,6 +17,12 @@ pub struct Problem {
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
     _has_py_factor: bool,
 }
+impl Default for Problem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Problem {
     pub fn new() -> Problem {
         Problem {
@@ -45,9 +51,10 @@ impl Problem {
             loss_func,
         });
         for (key, variable_dimesion) in variable_key_size_list {
-            if !self.variable_name_to_col_idx_dict.contains_key(&key) {
-                self.variable_name_to_col_idx_dict
-                    .insert(key, self.total_variable_dimension);
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                self.variable_name_to_col_idx_dict.entry(key)
+            {
+                e.insert(self.total_variable_dimension);
                 self.total_variable_dimension += variable_dimesion;
             }
         }
@@ -65,7 +72,7 @@ impl Problem {
                     .copy_from(v);
             };
         }
-        return combined_variables;
+        combined_variables
     }
     pub fn compute_residual_and_jacobian(
         &self,

@@ -28,11 +28,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
                 let dy = line[4].parse::<f64>().unwrap();
                 let dtheta = line[5].parse::<f64>().unwrap();
                 // todo add info matrix
-                let edge = factors::BetweenFactorSE2 {
-                    dx: dx,
-                    dy: dy,
-                    dtheta: dtheta,
-                };
+                let edge = factors::BetweenFactorSE2 { dx, dy, dtheta };
                 problem.add_residual_block(
                     3,
                     vec![(id0, 3), (id1, 3)],
@@ -63,7 +59,7 @@ fn main() {
     env_logger::init();
 
     let (problem, init_values) = read_g2o("tests/data/input_M3500_g2o.g2o");
-    let init_points: Vec<(f64, f64)> = init_values.iter().map(|(_, v)| (v[1], v[2])).collect();
+    let init_points: Vec<(f64, f64)> = init_values.values().map(|v| (v[1], v[2])).collect();
     let root_drawing_area = BitMapBackend::new("m3500_rs.png", (1024, 1024)).into_drawing_area();
 
     root_drawing_area.fill(&WHITE).unwrap();
@@ -91,7 +87,7 @@ fn main() {
     let result = gn.optimize(&problem, &init_values, None);
     let duration = start.elapsed();
     println!("Time elapsed in total is: {:?}", duration);
-    let result_points: Vec<(f64, f64)> = result.iter().map(|(_, v)| (v[1], v[2])).collect();
+    let result_points: Vec<(f64, f64)> = result.values().map(|v| (v[1], v[2])).collect();
     scatter_ctx
         .draw_series(
             result_points

@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 pub trait Factor: Send + Sync {
     fn residual_func(
         &self,
-        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+        params: &[na::DVector<num_dual::DualDVec64>],
     ) -> na::DVector<num_dual::DualDVec64>;
 }
 
@@ -18,7 +18,7 @@ pub struct BetweenFactorSE2 {
 impl Factor for BetweenFactorSE2 {
     fn residual_func(
         &self,
-        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+        params: &[na::DVector<num_dual::DualDVec64>],
     ) -> na::DVector<num_dual::DualDVec64> {
         let t_origin_k0 = &params[0];
         let t_origin_k1 = &params[1];
@@ -39,11 +39,11 @@ impl Factor for BetweenFactorSE2 {
         );
 
         let se2_diff = se2_origin_k1.inverse() * se2_origin_k0 * se2_k0_k1;
-        return na::dvector![
+        na::dvector![
             se2_diff.translation.x.clone(),
             se2_diff.translation.y.clone(),
             se2_diff.rotation.angle()
-        ];
+        ]
     }
 }
 
@@ -55,8 +55,8 @@ pub struct PriorFactor {
 impl Factor for PriorFactor {
     fn residual_func(
         &self,
-        params: &Vec<na::DVector<num_dual::DualDVec64>>,
+        params: &[na::DVector<num_dual::DualDVec64>],
     ) -> na::DVector<num_dual::DualDVec64> {
-        return params[0].clone() - self.v.map(num_dual::DualDVec64::from_re);
+        params[0].clone() - self.v.map(num_dual::DualDVec64::from_re)
     }
 }
