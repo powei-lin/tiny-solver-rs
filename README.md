@@ -111,6 +111,8 @@ from tiny_solver import Problem, GaussNewtonOptimizer
 from tiny_solver.factors import PriorFactor, PyFactor
 
 # define custom cost function in python
+# the trade off is the jacobian for the problem cannot be done in parallel
+# because of gil
 def cost(x: np.ndarray, yz: np.ndarray) -> np.ndarray:
     r0 = x[0] + 2 * yz[0] + 4 * yz[1]
     r1 = yz[0] * yz[0]
