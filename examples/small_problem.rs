@@ -4,9 +4,8 @@ use std::ops::Mul;
 use nalgebra as na;
 use tiny_solver::{self, Optimizer};
 
-#[derive(Clone)]
 struct CustomFactor {}
-
+// define your own residual function and the jacobian will be auto generated
 impl tiny_solver::factors::Factor for CustomFactor {
     fn residual_func(
         &self,
