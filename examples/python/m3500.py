@@ -51,7 +51,7 @@ def show_pose(init_values, color):
 
 
 def main():
-    FORMAT = '%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s'
+    FORMAT = "%(levelname)s %(name)s %(asctime)-15s %(filename)s:%(lineno)d %(message)s"
     logging.basicConfig(format=FORMAT)
     logging.getLogger().setLevel(logging.INFO)
     file_path = "tests/data/input_M3500_g2o.g2o"
