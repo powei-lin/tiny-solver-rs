@@ -39,6 +39,8 @@ cargo add tiny-solver
 | m3500   | 161.1ms     | 130.7ms | 123.6 ms |
 |         |             |         |          |
 
+It's not extremely optimized, but it's easy to install and use.
+
 ## Usage
 ```rust
 // define your own Cost/Factor struct
