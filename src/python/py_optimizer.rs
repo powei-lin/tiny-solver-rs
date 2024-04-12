@@ -23,7 +23,7 @@ impl GaussNewtonOptimizer {
         &self,
         py: Python<'_>,
         problem: &Problem,
-        initial_values: &PyDict,
+        initial_values: &Bound<'_, PyDict>,
         optimizer_options: Option<OptimizerOptions>,
     ) -> PyResult<HashMap<String, Py<PyArray2<f64>>>> {
         let init_values: HashMap<String, PyReadonlyArray1<f64>> = initial_values.extract().unwrap();
@@ -35,7 +35,7 @@ impl GaussNewtonOptimizer {
 
         let output_d: HashMap<String, Py<PyArray2<f64>>> = result
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_pyarray(py).to_owned().into()))
+            .map(|(k, v)| (k.to_string(), v.to_pyarray_bound(py).to_owned().into()))
             .collect();
         Ok(output_d)
     }

@@ -62,7 +62,7 @@ impl Factor for PyFactor {
                 })
                 .map(|x| x.into_py(py))
                 .collect();
-            let args = PyTuple::new(py, py_params);
+            let args = PyTuple::new_bound(py, py_params);
             let result = self.func.call1(py, args);
             let residual_py = result.unwrap().extract::<Vec<PyDual64Dyn>>(py);
             residual_py

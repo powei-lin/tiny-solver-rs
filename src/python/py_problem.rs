@@ -6,7 +6,7 @@ use crate::problem::Problem;
 
 use super::PyFactor;
 
-fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<(bool, Box<dyn Factor + Send>)> {
+fn convert_pyany_to_factor(py_any: &Bound<'_, PyAny>) -> PyResult<(bool, Box<dyn Factor + Send>)> {
     let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
     match factor_name.as_str() {
         "BetweenFactorSE2" => {
@@ -26,7 +26,9 @@ fn convert_pyany_to_factor(py_any: &PyAny) -> PyResult<(bool, Box<dyn Factor + S
         )),
     }
 }
-fn convert_pyany_to_loss_function(py_any: &PyAny) -> PyResult<Option<Box<dyn Loss + Send>>> {
+fn convert_pyany_to_loss_function(
+    py_any: &Bound<'_, PyAny>,
+) -> PyResult<Option<Box<dyn Loss + Send>>> {
     let factor_name: String = py_any.get_type().getattr("__name__")?.extract()?;
     match factor_name.as_str() {
         "HuberLoss" => {
@@ -52,8 +54,8 @@ impl Problem {
         &mut self,
         dim_residual: usize,
         variable_key_size_list: Vec<(String, usize)>,
-        pyfactor: &PyAny,
-        pyloss_func: &PyAny,
+        pyfactor: &Bound<'_, PyAny>,
+        pyloss_func: &Bound<'_, PyAny>,
     ) -> PyResult<()> {
         let (is_pyfactor, factor) = convert_pyany_to_factor(pyfactor).unwrap();
         self.add_residual_block(
