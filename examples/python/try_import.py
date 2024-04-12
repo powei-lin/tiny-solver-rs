@@ -1,5 +1,5 @@
 import tiny_solver
-from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions 
+from tiny_solver import GaussNewtonOptimizer, Problem, LinearSolver, OptimizerOptions
 from tiny_solver.factors import PriorFactor, BetweenFactorSE2, PyFactor
 from tiny_solver.loss_functions import HuberLoss
 import numpy as np
