@@ -1,6 +1,6 @@
 [package]
 name = "tiny-solver"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["Powei Lin <poweilin1994@gmail.com>"]
 readme = "README.md"
@@ -15,14 +15,14 @@ exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-faer = "0.18.2"
-faer-ext = { version = "0.1.0", features = ["nalgebra"] }
+faer = "0.19.1"
+faer-ext = { version = "0.2.0", features = ["nalgebra"] }
 log = "0.4.21"
-nalgebra = "0.32.4"
-num-dual = "0.9.0"
-num-traits = "0.2.18"
+nalgebra = "0.32.6"
+num-dual = "0.9.1"
+num-traits = "0.2.19"
 numpy = { version = "0.21.0", features = ["nalgebra"], optional = true }
-pyo3 = { version = "0.21.0", features = ["abi3", "abi3-py38"] }
+pyo3 = { version = "0.21.2", features = ["abi3", "abi3-py38"] }
 # pyo3-log = { version = "0.9.0", optional = true }
 rayon = "1.9.0"
 
@@ -35,8 +35,8 @@ python = ["num-dual/python", "numpy"]
 
 [dev-dependencies]
 env_logger = "0.11.3"
-itertools = "0.12.1"
-plotters = "0.3.5"
+itertools = "0.13.0"
+plotters = "0.3.6"
 
 [profile.dev.package.faer]
 opt-level = 3
