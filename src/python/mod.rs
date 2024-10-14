@@ -1,20 +1,22 @@
 use pyo3::prelude::*;
 
-use crate::factors::*;
 use crate::loss_functions::*;
 use crate::*;
 
 mod py_factors;
+mod py_linear;
 mod py_loss_functions;
 mod py_optimizer;
 mod py_problem;
 use self::py_factors::*;
+use self::py_linear::*;
+use self::py_optimizer::*;
 
 fn register_child_module(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     // For factors submodule
     let factors_module = PyModule::new_bound(parent_module.py(), "factors")?;
-    factors_module.add_class::<BetweenFactorSE2>()?;
-    factors_module.add_class::<PriorFactor>()?;
+    factors_module.add_class::<PyBetweenFactorSE2>()?;
+    factors_module.add_class::<PyPriorFactor>()?;
     factors_module.add_class::<PyFactor>()?;
     parent_module.add_submodule(&factors_module)?;
     parent_module
@@ -40,9 +42,9 @@ pub fn tiny_solver(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // pyo3_log::init();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<Problem>()?;
-    m.add_class::<LinearSolver>()?;
+    m.add_class::<PyLinearSolver>()?;
     m.add_class::<OptimizerOptions>()?;
-    m.add_class::<GaussNewtonOptimizer>()?;
+    m.add_class::<PyGaussNewtonOptimizer>()?;
     register_child_module(m)?;
 
     Ok(())

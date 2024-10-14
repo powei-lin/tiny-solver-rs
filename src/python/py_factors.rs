@@ -6,25 +6,33 @@ use pyo3::types::PyTuple;
 
 use crate::factors::*;
 
+#[derive(Debug, Clone)]
+#[pyclass(name = "BetweenFactorSE2")]
+pub struct PyBetweenFactorSE2(pub BetweenFactorSE2);
+
 #[pymethods]
-impl BetweenFactorSE2 {
+impl PyBetweenFactorSE2 {
     #[new]
     pub fn new(x: f64, y: f64, theta: f64) -> Self {
-        BetweenFactorSE2 {
+        PyBetweenFactorSE2(BetweenFactorSE2 {
             dx: x,
             dy: y,
             dtheta: theta,
-        }
+        })
     }
 }
 
+#[derive(Debug, Clone)]
+#[pyclass(name = "PriorFactor")]
+pub struct PyPriorFactor(pub PriorFactor);
+
 #[pymethods]
-impl PriorFactor {
+impl PyPriorFactor {
     #[new]
     pub fn new(x: PyReadonlyArray1<f64>) -> Self {
-        PriorFactor {
+        PyPriorFactor(PriorFactor {
             v: x.as_matrix().column(0).into(),
-        }
+        })
     }
 }
 
