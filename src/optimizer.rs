@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::ops::Add;
 
 use nalgebra as na;
-use pyo3::prelude::*;
 
 use crate::{problem, LinearSolver};
 
@@ -30,7 +29,6 @@ pub trait Optimizer {
 }
 
 #[derive(PartialEq, Debug)]
-#[pyclass]
 pub enum SolverStatus {
     Running,
     // Resulting solution may be OK to use.
@@ -43,7 +41,6 @@ pub enum SolverStatus {
     // FAILED_TO_SOLVER_LINEAR_SYSTEM,
 }
 
-#[pyclass]
 #[derive(Clone)]
 pub struct OptimizerOptions {
     pub max_iteration: usize,

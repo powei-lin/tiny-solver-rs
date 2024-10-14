@@ -1,7 +1,6 @@
 use std::ops::Mul;
 
 use nalgebra as na;
-use pyo3::prelude::*;
 
 pub trait Loss: Send + Sync {
     fn weight_residual_in_place(&self, residual: &mut na::DVector<f64>);
@@ -12,7 +11,6 @@ pub trait Loss: Send + Sync {
     );
 }
 
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct HuberLoss {
     scale: f64,

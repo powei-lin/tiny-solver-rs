@@ -4,12 +4,10 @@ use std::sync::{Arc, Mutex};
 use faer::sparse::SparseColMat;
 use faer_ext::IntoFaer;
 use nalgebra as na;
-use pyo3::prelude::*;
 use rayon::prelude::*;
 
 use crate::{factors, loss_functions, residual_block};
 
-#[pyclass]
 pub struct Problem {
     pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,
