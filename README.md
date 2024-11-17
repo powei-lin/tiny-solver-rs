@@ -169,7 +169,7 @@ git clone https://github.com/powei-lin/tiny-solver-rs.git
 cd tiny-solver-rs
 
 # run rust version
-cargo run -r --example m3500_benchmar
+cargo run -r --example m3500_benchmark
 
 # run python version
 pip install tiny-solver matplotlib
