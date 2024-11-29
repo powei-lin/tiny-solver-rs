@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use faer::sparse::SparseColMat;
@@ -13,6 +13,7 @@ pub struct Problem {
     pub total_residual_dimension: usize,
     residual_blocks: Vec<residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
+    pub fixed_variable_set: HashSet<String>,
     _has_py_factor: bool,
 }
 impl Default for Problem {
@@ -29,6 +30,7 @@ impl Problem {
             residual_blocks: Vec::<residual_block::ResidualBlock>::new(),
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             _has_py_factor: false,
+            fixed_variable_set: HashSet::new(),
         }
     }
     pub fn add_residual_block(
@@ -57,6 +59,12 @@ impl Problem {
             }
         }
         self.total_residual_dimension += dim_residual;
+    }
+    pub fn fixed_variable(&mut self, var_to_fix: &str) {
+        self.fixed_variable_set.insert(var_to_fix.to_owned());
+    }
+    pub fn unfixed_variable(&mut self, var_to_fix: &str) {
+        self.fixed_variable_set.remove(var_to_fix);
     }
     pub fn combine_variables(
         &self,
