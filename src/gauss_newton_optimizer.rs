@@ -50,7 +50,12 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
             let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
-            self.apply_dx(&dx_na, &mut params, &problem.variable_name_to_col_idx_dict);
+            self.apply_dx(
+                &dx_na,
+                &mut params,
+                &problem.variable_name_to_col_idx_dict,
+                &problem.fixed_variable_set,
+            );
         }
         params
     }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Add;
 
 use nalgebra as na;
@@ -17,8 +17,12 @@ pub trait Optimizer {
         dx: &na::DVector<f64>,
         params: &mut HashMap<String, na::DVector<f64>>,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
+        fixed_var_set: &HashSet<String>,
     ) {
         for (key, param) in params.iter_mut() {
+            if fixed_var_set.contains(key) {
+                continue;
+            }
             if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
                 let var_size = param.shape().0;
                 let updated_param = param.clone().add(dx.rows(*col_idx, var_size));
