@@ -13,7 +13,7 @@ pub struct Problem {
     pub total_residual_dimension: usize,
     residual_blocks: Vec<residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
-    pub fixed_variable_set: HashSet<String>,
+    pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     _has_py_factor: bool,
 }
 impl Default for Problem {
@@ -30,7 +30,7 @@ impl Problem {
             residual_blocks: Vec::<residual_block::ResidualBlock>::new(),
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             _has_py_factor: false,
-            fixed_variable_set: HashSet::new(),
+            fixed_variable_indexes: HashMap::new(),
         }
     }
     pub fn add_residual_block(
@@ -60,11 +60,16 @@ impl Problem {
         }
         self.total_residual_dimension += dim_residual;
     }
-    pub fn fixed_variable(&mut self, var_to_fix: &str) {
-        self.fixed_variable_set.insert(var_to_fix.to_owned());
+    pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
+        if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
+            var_mut.insert(idx);
+        } else {
+            self.fixed_variable_indexes
+                .insert(var_to_fix.to_owned(), HashSet::from([idx]));
+        }
     }
-    pub fn unfixed_variable(&mut self, var_to_fix: &str) {
-        self.fixed_variable_set.remove(var_to_fix);
+    pub fn unfix_variable(&mut self, var_to_fix: &str) {
+        self.fixed_variable_indexes.remove(var_to_fix);
     }
     pub fn combine_variables(
         &self,
