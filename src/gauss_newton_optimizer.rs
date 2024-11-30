@@ -55,6 +55,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 &mut params,
                 &problem.variable_name_to_col_idx_dict,
                 &problem.fixed_variable_indexes,
+                &problem.variable_bounds,
             );
         }
         params

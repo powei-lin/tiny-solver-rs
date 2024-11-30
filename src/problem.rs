@@ -14,6 +14,7 @@ pub struct Problem {
     residual_blocks: Vec<residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
+    pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
     _has_py_factor: bool,
 }
 impl Default for Problem {
@@ -31,6 +32,7 @@ impl Problem {
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             _has_py_factor: false,
             fixed_variable_indexes: HashMap::new(),
+            variable_bounds: HashMap::new(),
         }
     }
     pub fn add_residual_block(
@@ -68,8 +70,29 @@ impl Problem {
                 .insert(var_to_fix.to_owned(), HashSet::from([idx]));
         }
     }
-    pub fn unfix_variable(&mut self, var_to_fix: &str) {
-        self.fixed_variable_indexes.remove(var_to_fix);
+    pub fn unfix_variable(&mut self, var_to_unfix: &str) {
+        self.fixed_variable_indexes.remove(var_to_unfix);
+    }
+    pub fn set_variable_bounds(
+        &mut self,
+        var_to_bound: &str,
+        idx: usize,
+        lower_bound: f64,
+        upper_bound: f64,
+    ) {
+        if lower_bound > upper_bound {
+            log::error!("lower bound is larger than upper bound");
+        } else if let Some(var_mut) = self.variable_bounds.get_mut(var_to_bound) {
+            var_mut.insert(idx, (lower_bound, upper_bound));
+        } else {
+            self.variable_bounds.insert(
+                var_to_bound.to_owned(),
+                HashMap::from([(idx, (lower_bound, upper_bound))]),
+            );
+        }
+    }
+    pub fn remove_variable_bounds(&mut self, var_to_unbound: &str) {
+        self.variable_bounds.remove(var_to_unbound);
     }
     pub fn combine_variables(
         &self,

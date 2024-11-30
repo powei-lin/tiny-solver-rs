@@ -19,6 +19,7 @@ pub trait Optimizer {
         params: &mut HashMap<String, na::DVector<f64>>,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
         fixed_var_indexes: &HashMap<String, HashSet<usize>>,
+        variable_bounds: &HashMap<String, HashMap<usize, (f64, f64)>>,
     ) {
         for (key, param) in params.iter_mut() {
             if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
@@ -28,6 +29,11 @@ pub trait Optimizer {
                     trace!("Fix {}", key);
                     for &idx in indexes_to_fix {
                         updated_param[idx] = param[idx];
+                    }
+                }
+                if let Some(indexes_to_bound) = variable_bounds.get(key) {
+                    for (&idx, &(lower, upper)) in indexes_to_bound {
+                        updated_param[idx] = updated_param[idx].max(lower).min(upper);
                     }
                 }
                 param.copy_from(&updated_param);
