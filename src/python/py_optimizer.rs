@@ -37,7 +37,8 @@ impl PyGaussNewtonOptimizer {
             .collect();
         let result = self
             .0
-            .optimize(&problem.0, &init_values, Some(optimizer_options.unwrap().0));
+            .optimize(&problem.0, &init_values, Some(optimizer_options.unwrap().0))
+            .unwrap();
 
         let output_d: HashMap<String, Py<PyArray2<f64>>> = result
             .iter()

@@ -11,7 +11,7 @@ pub trait Optimizer {
         problem: &problem::Problem,
         initial_values: &HashMap<String, na::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
-    ) -> HashMap<String, na::DVector<f64>>;
+    ) -> Option<HashMap<String, na::DVector<f64>>>;
     fn apply_dx(
         &self,
         dx: &na::DVector<f64>,
