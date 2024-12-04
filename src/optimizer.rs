@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Add;
 
-use log::trace;
 use nalgebra as na;
 
 use crate::{problem, LinearSolver};
@@ -26,14 +25,16 @@ pub trait Optimizer {
                 let var_size = param.shape().0;
                 let mut updated_param = param.clone().add(dx.rows(*col_idx, var_size));
                 if let Some(indexes_to_fix) = fixed_var_indexes.get(key) {
-                    trace!("Fix {}", key);
                     for &idx in indexes_to_fix {
+                        log::debug!("Fix {} {}", key, idx);
                         updated_param[idx] = param[idx];
                     }
                 }
                 if let Some(indexes_to_bound) = variable_bounds.get(key) {
                     for (&idx, &(lower, upper)) in indexes_to_bound {
+                        let old = updated_param[idx];
                         updated_param[idx] = updated_param[idx].max(lower).min(upper);
+                        log::debug!("bound {} {} {} -> {}", key, idx, old, updated_param[idx]);
                     }
                 }
                 param.copy_from(&updated_param);
