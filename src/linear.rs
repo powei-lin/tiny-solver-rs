@@ -15,7 +15,7 @@ pub fn sparse_cholesky(
     residuals: &faer::Mat<f64>,
     jacobians: &faer::sparse::SparseColMat<usize, f64>,
     symbolic_pattern: &mut Option<solvers::SymbolicCholesky<usize>>,
-) -> faer::Mat<f64> {
+) -> Option<faer::Mat<f64>> {
     let hessian = jacobians
         .as_ref()
         .transpose()
@@ -32,11 +32,15 @@ pub fn sparse_cholesky(
         );
         symbolic_pattern.as_ref().unwrap()
     };
-    let dx =
+    if let Ok(cholesky) =
         solvers::Cholesky::try_new_with_symbolic(sym.clone(), hessian.as_ref(), faer::Side::Lower)
-            .unwrap()
-            .solve(b);
-    dx
+    {
+        let dx = cholesky.solve(b);
+
+        Some(dx)
+    } else {
+        None
+    }
 }
 
 pub fn sparse_qr(

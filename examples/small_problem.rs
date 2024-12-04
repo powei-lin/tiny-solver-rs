@@ -57,7 +57,7 @@ fn main() {
     let result = optimizer.optimize(&problem, &initial_values, None);
 
     // result
-    for (k, v) in result {
+    for (k, v) in result.unwrap() {
         println!("{}: {}", k, v);
     }
 }

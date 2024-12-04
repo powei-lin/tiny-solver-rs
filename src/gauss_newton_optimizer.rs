@@ -1,5 +1,5 @@
 use log::trace;
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use faer::sparse::linalg::solvers;
 use faer_ext::IntoNalgebra;
@@ -15,7 +15,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         problem: &crate::problem::Problem,
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
-    ) -> std::collections::HashMap<String, nalgebra::DVector<f64>> {
+    ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
         let mut params = initial_values.clone();
         let opt_option = optimizer_option.unwrap_or_default();
 
@@ -45,19 +45,23 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            let dx = sparse_cholesky(&residuals, &jac, &mut symbolic_pattern);
-            let duration = start.elapsed();
-            trace!("Time elapsed in solve Ax=b is: {:?}", duration);
+            if let Some(dx) = sparse_cholesky(&residuals, &jac, &mut symbolic_pattern) {
+                let duration = start.elapsed();
+                trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
-            let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
-            self.apply_dx(
-                &dx_na,
-                &mut params,
-                &problem.variable_name_to_col_idx_dict,
-                &problem.fixed_variable_indexes,
-                &problem.variable_bounds,
-            );
+                let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+                self.apply_dx(
+                    &dx_na,
+                    &mut params,
+                    &problem.variable_name_to_col_idx_dict,
+                    &problem.fixed_variable_indexes,
+                    &problem.variable_bounds,
+                );
+            } else {
+                log::debug!("solve ax=b failed");
+                return None;
+            }
         }
-        params
+        Some(params)
     }
 }
