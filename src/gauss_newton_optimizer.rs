@@ -30,6 +30,9 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
                 break;
+            } else if current_error.is_nan() {
+                log::debug!("solve ax=b failed, current error is nan");
+                return None;
             }
             if i > 0 {
                 if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
