@@ -34,6 +34,7 @@ impl ResidualBlock {
             loss_func,
         }
     }
+
     pub fn residual_and_jacobian(
         &self,
         params: &[na::DVector<f64>],

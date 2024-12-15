@@ -169,8 +169,8 @@ impl Problem {
         let mut params = Vec::<na::DVector<f64>>::new();
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
         let mut count_variable_local_idx: usize = 0;
-        for vk in &residual_block.variable_key_list {
-            if let Some(param) = variable_key_value_map.get(vk) {
+        for var_key in &residual_block.variable_key_list {
+            if let Some(param) = variable_key_value_map.get(var_key) {
                 params.push(param.clone());
                 variable_local_idx_size_list.push((count_variable_local_idx, param.shape().0));
                 count_variable_local_idx += param.shape().0;
@@ -188,8 +188,8 @@ impl Problem {
                 .copy_from(&res);
         }
 
-        for (i, vk) in residual_block.variable_key_list.iter().enumerate() {
-            if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(vk) {
+        for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
+            if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(var_key) {
                 let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
                 let mut local_jacobian_list = Vec::new();
