@@ -30,19 +30,14 @@ fn main() {
     // add residual x needs to be close to 3.0
     problem.add_residual_block(
         1,
-        vec![("x".to_string(), 1)],
+        &[("x", 1)],
         Box::new(tiny_solver::factors::PriorFactor {
             v: na::dvector![3.0],
         }),
         None,
     );
     // add custom residual for x and yz
-    problem.add_residual_block(
-        2,
-        vec![("x".to_string(), 1), ("yz".to_string(), 2)],
-        Box::new(CustomFactor {}),
-        None,
-    );
+    problem.add_residual_block(2, &[("x", 1), ("yz", 2)], Box::new(CustomFactor {}), None);
 
     // the initial values for x is 0.7 and yz is [-30.2, 123.4]
     let initial_values = HashMap::<String, na::DVector<f64>>::from([

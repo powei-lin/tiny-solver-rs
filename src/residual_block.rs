@@ -13,7 +13,28 @@ pub struct ResidualBlock {
     pub loss_func: Option<Box<dyn Loss + Send>>,
 }
 impl ResidualBlock {
-    pub fn jacobian(&self, params: &Vec<na::DVector<f64>>) -> (na::DVector<f64>, na::DMatrix<f64>) {
+    pub fn new(
+        dim_residual: usize,
+        residual_row_start_idx: usize,
+        variable_key_size_list: &[(&str, usize)],
+        factor: Box<dyn Factor + Send>,
+        loss_func: Option<Box<dyn Loss + Send>>,
+    ) -> Self {
+        ResidualBlock {
+            dim_residual,
+            residual_row_start_idx,
+            variable_key_list: variable_key_size_list
+                .iter()
+                .map(|s| s.0.to_string())
+                .collect(),
+            factor,
+            loss_func,
+        }
+    }
+    pub fn residual_and_jacobian(
+        &self,
+        params: &[na::DVector<f64>],
+    ) -> (na::DVector<f64>, na::DMatrix<f64>) {
         let variable_rows: Vec<usize> = params.iter().map(|x| x.shape().0).collect();
         let dim_variable = variable_rows.iter().sum::<usize>();
         let variable_row_idx_vec = get_variable_rows(&variable_rows);

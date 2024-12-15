@@ -31,7 +31,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
                 let edge = factors::BetweenFactorSE2 { dx, dy, dtheta };
                 problem.add_residual_block(
                     3,
-                    vec![(id0, 3), (id1, 3)],
+                    &[(&id0, 3), (&id1, 3)],
                     Box::new(edge),
                     Some(Box::new(HuberLoss::new(1.0))),
                 );
@@ -47,7 +47,7 @@ fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f6
     };
     problem.add_residual_block(
         3,
-        vec![("x0".to_string(), 3)],
+        &[("x0", 3)],
         Box::new(origin_factor),
         Some(Box::new(HuberLoss::new(1.0))),
     );
