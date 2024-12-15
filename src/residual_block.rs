@@ -6,6 +6,7 @@ use crate::factors::Factor;
 use crate::loss_functions::Loss;
 
 pub struct ResidualBlock {
+    pub residual_block_id: usize,
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
@@ -14,6 +15,7 @@ pub struct ResidualBlock {
 }
 impl ResidualBlock {
     pub fn new(
+        residual_block_id: usize,
         dim_residual: usize,
         residual_row_start_idx: usize,
         variable_key_size_list: &[(&str, usize)],
@@ -21,6 +23,7 @@ impl ResidualBlock {
         loss_func: Option<Box<dyn Loss + Send>>,
     ) -> Self {
         ResidualBlock {
+            residual_block_id,
             dim_residual,
             residual_row_start_idx,
             variable_key_list: variable_key_size_list

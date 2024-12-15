@@ -11,7 +11,8 @@ use crate::{factors, loss_functions, residual_block};
 pub struct Problem {
     pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,
-    residual_blocks: Vec<residual_block::ResidualBlock>,
+    residual_id_count: usize,
+    residual_blocks: HashMap<usize, residual_block::ResidualBlock>,
     pub variable_name_to_col_idx_dict: HashMap<String, usize>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
@@ -27,7 +28,8 @@ impl Problem {
         Problem {
             total_variable_dimension: 0,
             total_residual_dimension: 0,
-            residual_blocks: Vec::<residual_block::ResidualBlock>::new(),
+            residual_id_count: 0,
+            residual_blocks: HashMap::new(),
             variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
@@ -40,14 +42,18 @@ impl Problem {
         factor: Box<dyn factors::Factor + Send>,
         loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) {
-        self.residual_blocks
-            .push(residual_block::ResidualBlock::new(
+        self.residual_blocks.insert(
+            self.residual_id_count,
+            residual_block::ResidualBlock::new(
+                self.residual_id_count,
                 dim_residual,
                 self.total_residual_dimension,
                 &variable_key_size_list,
                 factor,
                 loss_func,
-            ));
+            ),
+        );
+        self.residual_id_count += 1;
         for (key, variable_dimesion) in variable_key_size_list {
             if let std::collections::hash_map::Entry::Vacant(e) =
                 self.variable_name_to_col_idx_dict.entry(key.to_string())
@@ -119,14 +125,16 @@ impl Problem {
         let jacobian_list: Arc<Mutex<Vec<(usize, usize, f64)>>> =
             Arc::new(Mutex::new(Vec::<(usize, usize, f64)>::new()));
 
-        self.residual_blocks.par_iter().for_each(|residual_block| {
-            self.compute_residual_and_jacobian_impl(
-                residual_block,
-                variable_key_value_map,
-                &total_residual,
-                &jacobian_list,
-            )
-        });
+        self.residual_blocks
+            .par_iter()
+            .for_each(|(_, residual_block)| {
+                self.compute_residual_and_jacobian_impl(
+                    residual_block,
+                    variable_key_value_map,
+                    &total_residual,
+                    &jacobian_list,
+                )
+            });
 
         let total_residual = Arc::try_unwrap(total_residual)
             .unwrap()
