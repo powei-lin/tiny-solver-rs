@@ -3,7 +3,8 @@ use std::ops::Add;
 
 use nalgebra as na;
 
-use crate::{problem, LinearSolver};
+use crate::problem;
+use crate::sparse_cholesky::LinearSolver;
 
 pub trait Optimizer {
     fn optimize(

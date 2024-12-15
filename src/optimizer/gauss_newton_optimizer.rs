@@ -4,7 +4,8 @@ use std::{collections::HashMap, time::Instant};
 use faer::sparse::linalg::solvers;
 use faer_ext::IntoNalgebra;
 
-use crate::{linear::sparse_cholesky, optimizer, OptimizerOptions};
+use crate::common::OptimizerOptions;
+use crate::{linear::sparse_cholesky, optimizer};
 
 #[derive(Debug, Clone)]
 pub struct GaussNewtonOptimizer {}
@@ -48,7 +49,11 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            if let Some(dx) = sparse_cholesky(&residuals, &jac, &mut symbolic_pattern) {
+            if let Some(dx) = crate::linear::sparse_cholesky::sparse_cholesky(
+                &residuals,
+                &jac,
+                &mut symbolic_pattern,
+            ) {
                 let duration = start.elapsed();
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
