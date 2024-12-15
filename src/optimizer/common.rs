@@ -4,7 +4,7 @@ use std::ops::Add;
 use nalgebra as na;
 
 use crate::problem;
-use crate::sparse_cholesky::LinearSolver;
+use crate::sparse::LinearSolverType;
 
 pub trait Optimizer {
     fn optimize(
@@ -60,7 +60,7 @@ pub enum SolverStatus {
 #[derive(Clone)]
 pub struct OptimizerOptions {
     pub max_iteration: usize,
-    pub linear_solver_type: LinearSolver,
+    pub linear_solver_type: LinearSolverType,
     pub verbosity_level: usize,
     pub min_abs_error_decrease_threshold: f64,
     pub min_rel_error_decrease_threshold: f64,
@@ -72,7 +72,7 @@ impl Default for OptimizerOptions {
     fn default() -> Self {
         OptimizerOptions {
             max_iteration: 100,
-            linear_solver_type: LinearSolver::SparseCholesky,
+            linear_solver_type: LinearSolverType::SparseCholesky,
             verbosity_level: 0,
             min_abs_error_decrease_threshold: 1e-5,
             min_rel_error_decrease_threshold: 1e-5,

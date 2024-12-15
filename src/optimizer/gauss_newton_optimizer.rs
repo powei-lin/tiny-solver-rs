@@ -1,14 +1,26 @@
 use log::trace;
 use std::{collections::HashMap, time::Instant};
 
-use faer::sparse::linalg::solvers;
 use faer_ext::IntoNalgebra;
 
 use crate::common::OptimizerOptions;
-use crate::{linear::sparse_cholesky, optimizer};
+use crate::linear;
+use crate::optimizer;
+use crate::sparse::LinearSolverType;
+use crate::sparse::SparseLinearSolver;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GaussNewtonOptimizer {}
+impl GaussNewtonOptimizer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+impl Default for GaussNewtonOptimizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl optimizer::Optimizer for GaussNewtonOptimizer {
     fn optimize(
@@ -19,9 +31,12 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
     ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
         let mut params = initial_values.clone();
         let opt_option = optimizer_option.unwrap_or_default();
+        let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
+            LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
+            LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
+        };
 
         let mut last_err: f64 = 1.0;
-        let mut symbolic_pattern: Option<solvers::SymbolicCholesky<usize>> = None;
 
         for i in 0..opt_option.max_iteration {
             let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
@@ -49,11 +64,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            if let Some(dx) = crate::linear::sparse_cholesky::sparse_cholesky(
-                &residuals,
-                &jac,
-                &mut symbolic_pattern,
-            ) {
+            if let Some(dx) = linear_solver.solve(&residuals, &jac) {
                 let duration = start.elapsed();
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
