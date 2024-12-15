@@ -1,6 +1,7 @@
 use nalgebra as na;
 use rayon::prelude::*;
 
+use crate::corrector::Corrector;
 use crate::factors::Factor;
 use crate::loss_functions::Loss;
 
@@ -42,8 +43,15 @@ impl ResidualBlock {
             na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
                 jacobian[r][c]
             });
+        let squared_norm = residual.norm_squared();
         if let Some(loss_func) = self.loss_func.as_ref() {
-            loss_func.weight_residual_in_place(&mut residual);
+            let rho = loss_func.evaluate(squared_norm);
+            // let cost = 0.5 * rho[0];
+            let corrector = Corrector::new(squared_norm, &rho);
+            corrector.correct_jacobian(&residual, &mut jacobian);
+            corrector.correct_residuals(&mut residual);
+        } else {
+            // let cost = 0.5 * squared_norm;
         }
         (residual, jacobian)
     }
