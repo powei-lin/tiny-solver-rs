@@ -1,3 +1,4 @@
+pub mod corrector;
 pub mod factors;
 pub mod gauss_newton_optimizer;
 pub mod linear;

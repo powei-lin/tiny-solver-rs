@@ -43,7 +43,7 @@ impl ResidualBlock {
                 jacobian[r][c]
             });
         if let Some(loss_func) = self.loss_func.as_ref() {
-            loss_func.weight_residual_jacobian_in_place(&mut residual, &mut jacobian);
+            loss_func.weight_residual_in_place(&mut residual);
         }
         (residual, jacobian)
     }
