@@ -91,7 +91,7 @@ fn main() {
     ]);
 
     // initialize optimizer
-    let optimizer = tiny_solver::GaussNewtonOptimizer {};
+    let optimizer = tiny_solver::GaussNewtonOptimizer::new();
 
     // optimize
     let result = optimizer.optimize(&problem, &initial_values, None);

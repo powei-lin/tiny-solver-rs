@@ -48,7 +48,7 @@ impl Problem {
                 self.residual_id_count,
                 dim_residual,
                 self.total_residual_dimension,
-                &variable_key_size_list,
+                variable_key_size_list,
                 factor,
                 loss_func,
             ),
