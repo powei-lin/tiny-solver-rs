@@ -7,7 +7,6 @@ use plotters::prelude::*;
 
 use tiny_solver::{
     factors, gauss_newton_optimizer, loss_functions::HuberLoss, optimizer::Optimizer, problem,
-    OptimizerOptions,
 };
 
 fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f64>>) {
