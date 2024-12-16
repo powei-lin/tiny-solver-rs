@@ -7,3 +7,6 @@ __pycache__
 .venv
 .pytest_cache
 Cargo.lock
+m3500_rs.png
+.vscode/
+venv/
