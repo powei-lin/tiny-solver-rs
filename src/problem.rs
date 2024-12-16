@@ -39,7 +39,7 @@ impl Problem {
         &mut self,
         dim_residual: usize,
         variable_key_size_list: &[(&str, usize)],
-        factor: Box<dyn factors::Factor + Send>,
+        factor: Box<dyn factors::FactorImpl + Send>,
         loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) {
         self.residual_blocks.insert(

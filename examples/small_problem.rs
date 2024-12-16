@@ -6,18 +6,21 @@ use tiny_solver::{self, Optimizer};
 
 struct CustomFactor {}
 // define your own residual function and the jacobian will be auto generated
-impl tiny_solver::factors::Factor for CustomFactor {
-    fn residual_func(
-        &self,
-        params: &[nalgebra::DVector<num_dual::DualDVec64>],
-    ) -> nalgebra::DVector<num_dual::DualDVec64> {
+impl<T: na::RealField> tiny_solver::factors::Factor<T> for CustomFactor {
+    fn residual_func(&self, params: &[nalgebra::DVector<T>]) -> nalgebra::DVector<T> {
         let x = &params[0][0];
         let y = &params[1][0];
         let z = &params[1][1];
 
-        na::dvector![x + y.clone().mul(2.0) + z.clone().mul(4.0), y.mul(z)]
+        na::dvector![
+            x.clone()
+                + y.clone() * T::from_f64(2.0).unwrap()
+                + z.clone() * T::from_f64(4.0).unwrap(),
+            y.clone() * z.clone()
+        ]
     }
 }
+// impl tiny_solver::factors::FactorImpl for CustomFactor {}
 
 fn main() {
     // init logger, `export RUST_LOG=trace` to see more log

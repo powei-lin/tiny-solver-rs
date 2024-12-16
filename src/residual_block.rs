@@ -2,7 +2,7 @@ use nalgebra as na;
 use rayon::prelude::*;
 
 use crate::corrector::Corrector;
-use crate::factors::Factor;
+use crate::factors::FactorImpl;
 use crate::loss_functions::Loss;
 
 pub struct ResidualBlock {
@@ -10,7 +10,7 @@ pub struct ResidualBlock {
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
-    pub factor: Box<dyn Factor + Send>,
+    pub factor: Box<dyn FactorImpl + Send>,
     pub loss_func: Option<Box<dyn Loss + Send>>,
 }
 impl ResidualBlock {
@@ -19,7 +19,7 @@ impl ResidualBlock {
         dim_residual: usize,
         residual_row_start_idx: usize,
         variable_key_size_list: &[(&str, usize)],
-        factor: Box<dyn Factor + Send>,
+        factor: Box<dyn FactorImpl + Send>,
         loss_func: Option<Box<dyn Loss + Send>>,
     ) -> Self {
         ResidualBlock {
@@ -60,7 +60,7 @@ impl ResidualBlock {
                 )
             })
             .collect();
-        let residual_with_jacobian = self.factor.residual_func(&params_with_dual);
+        let residual_with_jacobian = self.factor.residual_func_dual(&params_with_dual);
         let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
