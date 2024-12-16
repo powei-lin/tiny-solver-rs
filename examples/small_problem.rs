@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::Mul;
 
 use nalgebra as na;
 use tiny_solver::{self, Optimizer};
@@ -20,7 +19,6 @@ impl<T: na::RealField> tiny_solver::factors::Factor<T> for CustomFactor {
         ]
     }
 }
-// impl tiny_solver::factors::FactorImpl for CustomFactor {}
 
 fn main() {
     // init logger, `export RUST_LOG=trace` to see more log
