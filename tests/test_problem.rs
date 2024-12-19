@@ -5,7 +5,6 @@ mod tests {
     use std::collections::HashMap;
 
     use nalgebra as na;
-    use na::dvector;
     use tiny_solver;
 
     #[test]
@@ -99,7 +98,7 @@ mod tests {
             None,
         );
 
-        let variable_key_value_map = HashMap::from([("x".to_string(), dvector![0.0]), ("y".to_string(),  dvector![1.0, 2.0])]); 
+        let variable_key_value_map = HashMap::from([("x".to_string(), na::dvector![0.0]), ("y".to_string(),  na::dvector![1.0, 2.0])]); 
         let combined_variables = problem.combine_variables(&variable_key_value_map);
         assert_eq!(combined_variables.len(), problem.total_variable_dimension);
         assert_eq!(combined_variables[0], 0.0);
