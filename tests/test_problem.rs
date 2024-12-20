@@ -135,13 +135,12 @@ mod tests {
             }
         }
 
-       problem.add_residual_block(2, &[("x", 1), ("yz", 2)], Box::new(CustomFactor {}), None);
+        problem.add_residual_block(2, &[("x", 1), ("yz", 2)], Box::new(CustomFactor {}), None);
 
         // the initial values for x is 0.7 and yz is [-30.2, 123.4]
         let initial_values = HashMap::<String, na::DVector<f64>>::from([
             ("x".to_string(), na::dvector![0.7]),
             ("yz".to_string(), na::dvector![-30.2, 123.4]),
-
         ]);
 
         let (residuals, jac) = problem.compute_residual_and_jacobian(&initial_values);
