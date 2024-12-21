@@ -65,3 +65,33 @@ impl Loss for CauchyLoss {
         ]
     }
 }
+
+pub struct ArctanLoss {
+    tolerance: f64,
+    inv_of_squared_tolerance: f64
+}
+
+impl ArctanLoss {
+    pub fn new(tolerance: f64) -> Self {
+        if tolerance <= 0.0 {
+            panic!("scale needs to be larger than zero");
+        }
+        ArctanLoss {
+            tolerance,
+            inv_of_squared_tolerance: 1.0 / (tolerance * tolerance)
+        }   
+    }
+}
+
+impl Loss for ArctanLoss {
+    fn evaluate(&self, s: f64) -> [f64; 3] {
+        let sum = 1.0 + s * s * self.inv_of_squared_tolerance;
+        let inv = 1.0 / sum;
+
+        [
+            self.tolerance * s.atan2(self.tolerance),
+            inv.max(f64::MIN),
+            -2.0 * s * self.inv_of_squared_tolerance * (inv * inv)
+        ]
+    }
+}
