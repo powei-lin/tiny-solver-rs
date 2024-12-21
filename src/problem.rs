@@ -23,6 +23,9 @@ impl Default for Problem {
     }
 }
 
+// (col idx in matrix, row idx in matrix, value)
+type JacibianValue = (usize, usize, f64);
+
 impl Problem {
     pub fn new() -> Problem {
         Problem {
@@ -115,13 +118,9 @@ impl Problem {
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         // multi
-        let total_residual: Arc<
-            Mutex<
-                na::Matrix<f64, na::Dyn, na::Const<1>, na::VecStorage<f64, na::Dyn, na::Const<1>>>,
-            >,
-        > = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
-            self.total_residual_dimension,
-        )));
+        let total_residual: Arc<Mutex<na::DVector<f64>>> = Arc::new(Mutex::new(
+            na::DVector::<f64>::zeros(self.total_residual_dimension),
+        ));
         let jacobian_list: Arc<Mutex<Vec<(usize, usize, f64)>>> =
             Arc::new(Mutex::new(Vec::<(usize, usize, f64)>::new()));
 
@@ -155,16 +154,13 @@ impl Problem {
         .unwrap();
         (residual_faer, jacobian_faer)
     }
+
     fn compute_residual_and_jacobian_impl(
         &self,
         residual_block: &crate::ResidualBlock,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
-        total_residual: &Arc<
-            Mutex<
-                na::Matrix<f64, na::Dyn, na::Const<1>, na::VecStorage<f64, na::Dyn, na::Const<1>>>,
-            >,
-        >,
-        jacobian_list: &Arc<Mutex<Vec<(usize, usize, f64)>>>,
+        total_residual: &Arc<Mutex<na::DVector<f64>>>,
+        jacobian_list: &Arc<Mutex<Vec<JacibianValue>>>,
     ) {
         let mut params = Vec::<na::DVector<f64>>::new();
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
