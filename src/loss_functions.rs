@@ -68,7 +68,7 @@ impl Loss for CauchyLoss {
 
 pub struct ArctanLoss {
     tolerance: f64,
-    inv_of_squared_tolerance: f64
+    inv_of_squared_tolerance: f64,
 }
 
 impl ArctanLoss {
@@ -78,8 +78,8 @@ impl ArctanLoss {
         }
         ArctanLoss {
             tolerance,
-            inv_of_squared_tolerance: 1.0 / (tolerance * tolerance)
-        }   
+            inv_of_squared_tolerance: 1.0 / (tolerance * tolerance),
+        }
     }
 }
 
@@ -91,7 +91,7 @@ impl Loss for ArctanLoss {
         [
             self.tolerance * s.atan2(self.tolerance),
             inv.max(f64::MIN),
-            -2.0 * s * self.inv_of_squared_tolerance * (inv * inv)
+            -2.0 * s * self.inv_of_squared_tolerance * (inv * inv),
         ]
     }
 }

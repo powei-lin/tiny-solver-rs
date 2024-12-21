@@ -9,7 +9,7 @@ mod tests {
         let asymptote = tolerance * f64::consts::PI / 2.0;
 
         let arctan_loss = ArctanLoss::new(tolerance);
-        
+
         let rho1 = arctan_loss.evaluate(1.0);
         let rho2 = arctan_loss.evaluate(30.0);
 
