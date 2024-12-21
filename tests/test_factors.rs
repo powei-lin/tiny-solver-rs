@@ -51,13 +51,12 @@ mod tests {
         let factor = BetweenFactorSE2 {
             dtheta: 1.0,
             dx: 2.0,
-            dy: 3.0
+            dy: 3.0,
         };
 
         let params = [na::dvector![1.0, 2.0, 3.0], na::dvector![1.0, 2.0, 3.0]];
-        
+
         let residual = factor.residual_func(&params);
         assert_eq!(residual, na::dvector![2.0, 3.0, 1.0]);
-
     }
 }
