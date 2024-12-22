@@ -23,7 +23,7 @@ impl Default for Problem {
     }
 }
 
-// (col idx in matrix, row idx in matrix, value)
+/// (col idx in matrix, row idx in matrix, value)
 type JacobianValue = (usize, usize, f64);
 
 impl Problem {
@@ -121,8 +121,7 @@ impl Problem {
         let total_residual: Arc<Mutex<na::DVector<f64>>> = Arc::new(Mutex::new(
             na::DVector::<f64>::zeros(self.total_residual_dimension),
         ));
-        let jacobian_list: Arc<Mutex<Vec<(usize, usize, f64)>>> =
-            Arc::new(Mutex::new(Vec::<(usize, usize, f64)>::new()));
+        let jacobian_list = Arc::new(Mutex::new(Vec::<JacobianValue>::new()));
 
         self.residual_blocks
             .par_iter()
