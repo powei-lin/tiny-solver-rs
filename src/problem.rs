@@ -118,9 +118,9 @@ impl Problem {
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         // multi
-        let total_residual: Arc<Mutex<na::DVector<f64>>> = Arc::new(Mutex::new(
-            na::DVector::<f64>::zeros(self.total_residual_dimension),
-        ));
+        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
+            self.total_residual_dimension,
+        )));
         let jacobian_list = Arc::new(Mutex::new(Vec::<JacobianValue>::new()));
 
         self.residual_blocks
