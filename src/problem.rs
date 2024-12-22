@@ -24,7 +24,7 @@ impl Default for Problem {
 }
 
 // (col idx in matrix, row idx in matrix, value)
-type JacibianValue = (usize, usize, f64);
+type JacobianValue = (usize, usize, f64);
 
 impl Problem {
     pub fn new() -> Problem {
@@ -160,7 +160,7 @@ impl Problem {
         residual_block: &crate::ResidualBlock,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
-        jacobian_list: &Arc<Mutex<Vec<JacibianValue>>>,
+        jacobian_list: &Arc<Mutex<Vec<JacobianValue>>>,
     ) {
         let mut params = Vec::<na::DVector<f64>>::new();
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
