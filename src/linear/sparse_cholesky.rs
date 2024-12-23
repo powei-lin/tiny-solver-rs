@@ -31,28 +31,34 @@ impl SparseLinearSolver for SparseCholeskySolver {
         residuals: &faer::Mat<f64>,
         jacobians: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>> {
-        let hessian = jacobians
+        let jtj = jacobians
             .as_ref()
             .transpose()
             .to_col_major()
             .unwrap()
             .mul(jacobians.as_ref());
-        let b = jacobians.as_ref().transpose().mul(-residuals);
+        let jtr = jacobians.as_ref().transpose().mul(-residuals);
 
+        self.solve_jtj(&jtr, &jtj)
+    }
+
+    fn solve_jtj(
+        &mut self,
+        jtr: &faer::Mat<f64>,
+        jtj: &faer::sparse::SparseColMat<usize, f64>,
+    ) -> Option<faer::Mat<f64>> {
         // initialize the pattern
         if self.symbolic_pattern.is_none() {
             self.symbolic_pattern = Some(
-                solvers::SymbolicCholesky::try_new(hessian.symbolic(), faer::Side::Lower).unwrap(),
+                solvers::SymbolicCholesky::try_new(jtj.symbolic(), faer::Side::Lower).unwrap(),
             );
         }
 
         let sym = self.symbolic_pattern.as_ref().unwrap();
-        if let Ok(cholesky) = solvers::Cholesky::try_new_with_symbolic(
-            sym.clone(),
-            hessian.as_ref(),
-            faer::Side::Lower,
-        ) {
-            let dx = cholesky.solve(b);
+        if let Ok(cholesky) =
+            solvers::Cholesky::try_new_with_symbolic(sym.clone(), jtj.as_ref(), faer::Side::Lower)
+        {
+            let dx = cholesky.solve(jtr);
 
             Some(dx)
         } else {
