@@ -38,14 +38,15 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
 
-        let mut jacobi_scaling : Option<faer::sparse::SparseColMat> = None;
+        let mut jacobi_scaling_diagonal : Option<faer::sparse::SparseColMat<usize, f64>> = None;
+        let mut cost = 0.0;
         let g_new = nalgebra::DMatrix::<f64>::identity(problem.total_residual_dimension, problem.total_variable_dimension);
 
 
         let mut last_err: f64 = 1.0;
 
         for i in 0..opt_option.max_iteration {
-            let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
+            let (residuals, mut jac) = problem.compute_residual_and_jacobian(&params);
 
             if i == 0 {
                 let (rows, cols) = jac.shape();
@@ -59,19 +60,20 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     (c, c, 1.0 / (1.0 + v))
                 }).collect();
     
-                jacobi_scaling = faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(
+                jacobi_scaling_diagonal = Some(faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(
                     rows,
                     cols,
                     &jacobi_scaling_vec,
-                );
+                ).unwrap());
             }
 
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
-            jac = jac * jacobi_scaling.unwrap();
-            let jtj = jac.transpose().to_col_major().unwrap() * jac;
-            let g = jac.transpose() * residuals;
+            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
+            cost = residuals.squared_norm_l2() / 2.0;
+            let jtj = jac.transpose().to_col_major().unwrap() * &jac;
+            let g = jac.transpose() * &residuals;
 
             let u = 1.0 / 1e4;
             let v =  2;
@@ -101,8 +103,11 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            if let Some(dx) = linear_solver.solve(&residuals, &jac) {
+            if let Some(lm_step) = linear_solver.solve(&residuals, &jac) {
+                println!("YO DAWG: dx: {:?}, residuals: {:?}, jac: {:?}", lm_step.shape(), residuals.shape(), jac.shape());
                 let duration = start.elapsed();
+                let dx = jacobi_scaling_diagonal.as_ref().unwrap() * lm_step;
+
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
