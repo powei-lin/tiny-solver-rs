@@ -11,4 +11,9 @@ pub trait SparseLinearSolver {
         residuals: &faer::Mat<f64>,
         jacobians: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>>;
+    fn solve_jtj(
+        &mut self,
+        jtr: &faer::Mat<f64>,
+        jtj: &faer::sparse::SparseColMat<usize, f64>,
+    ) -> Option<faer::Mat<f64>>;
 }
