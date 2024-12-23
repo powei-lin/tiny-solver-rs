@@ -57,12 +57,12 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                         .map(|&i| i * i)
                         .sum::<f64>()
                         .sqrt();
-                    (c, c, 1.0 / (1.0 + v))
+                    (c, 0, 1.0 / (1.0 + v))
                 }).collect();
     
                 jacobi_scaling_diagonal = Some(faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(
-                    rows,
                     cols,
+                    1,
                     &jacobi_scaling_vec,
                 ).unwrap());
             }
@@ -70,6 +70,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
+            println!("Jacobi scaling diagonal ({:?}) vs jacobian ({:?})", jacobi_scaling_diagonal.as_ref().unwrap().shape(), jac.shape());
             jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
             cost = residuals.squared_norm_l2() / 2.0;
             let jtj = jac.transpose().to_col_major().unwrap() * &jac;

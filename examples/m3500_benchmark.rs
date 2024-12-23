@@ -6,7 +6,7 @@ use nalgebra as na;
 use plotters::prelude::*;
 
 use tiny_solver::{
-    factors, gauss_newton_optimizer, loss_functions::HuberLoss, optimizer::Optimizer, problem,
+    factors, gauss_newton_optimizer, lm_optimizer, loss_functions::HuberLoss, optimizer::Optimizer, problem
 };
 
 fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f64>>) {
@@ -82,7 +82,7 @@ fn main() {
                 .map(|(x, y)| Circle::new((*x, *y), 2, GREEN.filled())),
         )
         .unwrap();
-    let gn = gauss_newton_optimizer::GaussNewtonOptimizer::new();
+    let gn = lm_optimizer::LevenbergMarquardtOptimizer::new();
     let start = Instant::now();
     let result = gn.optimize(&problem, &init_values, None);
     let duration = start.elapsed();
