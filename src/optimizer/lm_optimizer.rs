@@ -104,7 +104,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
             let start = Instant::now();
             if let Some(lm_step) = linear_solver.solve(&residuals, &jac) {
-                println!("YO DAWG: dx: {:?}, residuals: {:?}, jac: {:?}", lm_step.shape(), residuals.shape(), jac.shape());
+                //println!("YO DAWG: dx: {:?}, residuals: {:?}, jac: {:?}", lm_step.shape(), residuals.shape(), jac.shape());
                 let duration = start.elapsed();
                 let dx = jacobi_scaling_diagonal.as_ref().unwrap() * lm_step;
 
