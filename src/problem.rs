@@ -117,6 +117,7 @@ impl Problem {
     pub fn compute_residuals(
         &self,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+        with_loss_fn: bool,
     ) -> faer::Mat<f64> {
         let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
             self.total_residual_dimension,
@@ -124,7 +125,12 @@ impl Problem {
         self.residual_blocks
             .par_iter()
             .for_each(|(_, residual_block)| {
-                self.compute_residual_impl(residual_block, variable_key_value_map, &total_residual)
+                self.compute_residual_impl(
+                    residual_block,
+                    variable_key_value_map,
+                    &total_residual,
+                    with_loss_fn,
+                )
             });
         let total_residual = Arc::try_unwrap(total_residual)
             .unwrap()
@@ -180,6 +186,7 @@ impl Problem {
         residual_block: &crate::ResidualBlock,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
+        with_loss_fn: bool,
     ) {
         let mut params = Vec::<na::DVector<f64>>::new();
         for var_key in &residual_block.variable_key_list {
@@ -187,7 +194,7 @@ impl Problem {
                 params.push(param.clone());
             };
         }
-        let res = residual_block.residual(&params);
+        let res = residual_block.residual(&params, with_loss_fn);
 
         {
             let mut total_residual = total_residual.lock().unwrap();
