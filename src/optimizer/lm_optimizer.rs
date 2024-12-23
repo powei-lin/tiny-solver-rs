@@ -43,8 +43,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut cost = 0.0;
         let g_new = nalgebra::DMatrix::<f64>::identity(problem.total_residual_dimension, problem.total_variable_dimension);
 
-        let min_diagonal = 1e-6;
-        let max_diagonal = 1e32;
+        const MIN_DIAGONAL :f64 = 1e-6;
+        const MAX_DIAGONAL : f64 = 1e32;
         let u = 1.0 / 1e4;
         let v =  2;
 
@@ -62,12 +62,12 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                         .map(|&i| i * i)
                         .sum::<f64>()
                         .sqrt();
-                    (c, 0, 1.0 / (1.0 + v))
+                    (c, c, 1.0 / (1.0 + v))
                 }).collect();
     
                 jacobi_scaling_diagonal = Some(faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(
                     cols,
-                    1,
+                    cols,
                     &jacobi_scaling_vec,
                 ).unwrap());
             }
@@ -75,12 +75,11 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
-            println!("Jacobi scaling diagonal ({:?}) vs jacobian ({:?})", jacobi_scaling_diagonal.as_ref().unwrap().shape(), jac.shape());
-           // jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
+            println!("{}, {}", problem.total_residual_dimension, problem.total_variable_dimension);
+            println!("Residual: ({:?}), Jacobi scaling diagonal ({:?}) vs jacobian ({:?})", residuals.shape(), jacobi_scaling_diagonal.as_ref().unwrap().shape(), jac.shape());
+            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
             cost = residuals.squared_norm_l2() / 2.0;
-            
-            let jtj = jac.as_ref().transpose().mul(&jac);
-            let jtr = jac.as_ref().transpose().mul(&residuals);
+
             
             let jtj = jac
             .as_ref()
@@ -88,14 +87,15 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             .to_col_major()
             .unwrap()
             .mul(jac.as_ref());
-
+            
             let jtr = jac.as_ref().transpose().mul(-residuals);
+
    
             let mut jtj_regularized = jtj.clone();
-            //println!("Residual dimension")
-            /*for i in 0..problem.total_residual_dimension {
-                jtj_regularized[(i, i)] = (jtj.get(i,i).unwrap().max(min_diagonal)).min(max_diagonal);
-            }*/
+            println!("jac: {:?} jtj: {:?}, jacobi_scaling: {:?}", jac.shape(), jtj.shape(), jacobi_scaling_diagonal.as_ref().unwrap().shape());
+            for i in 0..problem.total_variable_dimension {
+                jtj_regularized[(i, i)] = (jtj.get(i,i).unwrap().max(MIN_DIAGONAL)).min(MAX_DIAGONAL);
+            }
 
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
