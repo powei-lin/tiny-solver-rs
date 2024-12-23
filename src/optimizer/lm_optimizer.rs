@@ -2,6 +2,7 @@ use log::trace;
 use nalgebra::zero;
 use std::convert::identity;
 use std::{collections::HashMap, time::Instant};
+use std::ops::Mul;
 
 use faer_ext::IntoNalgebra;
 
@@ -42,6 +43,10 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut cost = 0.0;
         let g_new = nalgebra::DMatrix::<f64>::identity(problem.total_residual_dimension, problem.total_variable_dimension);
 
+        let min_diagonal = 1e-6;
+        let max_diagonal = 1e32;
+        let u = 1.0 / 1e4;
+        let v =  2;
 
         let mut last_err: f64 = 1.0;
 
@@ -71,17 +76,26 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             trace!("iter:{} total err:{}", i, current_error);
 
             println!("Jacobi scaling diagonal ({:?}) vs jacobian ({:?})", jacobi_scaling_diagonal.as_ref().unwrap().shape(), jac.shape());
-            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
+           // jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
             cost = residuals.squared_norm_l2() / 2.0;
-            let jtj = jac.transpose().to_col_major().unwrap() * &jac;
-            let g = jac.transpose() * &residuals;
+            
+            let jtj = jac.as_ref().transpose().mul(&jac);
+            let jtr = jac.as_ref().transpose().mul(&residuals);
+            
+            let jtj = jac
+            .as_ref()
+            .transpose()
+            .to_col_major()
+            .unwrap()
+            .mul(jac.as_ref());
 
-            let u = 1.0 / 1e4;
-            let v =  2;
-
-            let jtj_regularized = jtj;
-
-
+            let jtr = jac.as_ref().transpose().mul(-residuals);
+   
+            let mut jtj_regularized = jtj.clone();
+            //println!("Residual dimension")
+            /*for i in 0..problem.total_residual_dimension {
+                jtj_regularized[(i, i)] = (jtj.get(i,i).unwrap().max(min_diagonal)).min(max_diagonal);
+            }*/
 
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
@@ -104,8 +118,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             last_err = current_error;
 
             let start = Instant::now();
-            if let Some(lm_step) = linear_solver.solve(&residuals, &jac) {
-                //println!("YO DAWG: dx: {:?}, residuals: {:?}, jac: {:?}", lm_step.shape(), residuals.shape(), jac.shape());
+            if let Some(lm_step) = linear_solver.solve_jtj(&jtr, &jtj_regularized) {
+                println!("YO DAWG: dx: {:?}, jtr: {:?}, jtj_reg: {:?}", lm_step.shape(), jtr.shape(), jtj_regularized.shape());
                 let duration = start.elapsed();
                 let dx = jacobi_scaling_diagonal.as_ref().unwrap() * lm_step;
 
