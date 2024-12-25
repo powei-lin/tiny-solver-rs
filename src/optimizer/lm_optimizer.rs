@@ -45,8 +45,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
         const MIN_DIAGONAL :f64 = 1e-6;
         const MAX_DIAGONAL : f64 = 1e32;
-        let u = 1.0 / 1e4;
-        let v =  2;
+        let mut u = 1.0 / 1e4;
+        let mut v =  2;
 
         let mut last_err: f64 = 1.0;
 
@@ -121,18 +121,54 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             if let Some(lm_step) = linear_solver.solve_jtj(&jtr, &jtj_regularized) {
                 println!("YO DAWG: dx: {:?}, jtr: {:?}, jtj_reg: {:?}", lm_step.shape(), jtr.shape(), jtj_regularized.shape());
                 let duration = start.elapsed();
-                let dx = jacobi_scaling_diagonal.as_ref().unwrap() * lm_step;
+                let dx = jacobi_scaling_diagonal.as_ref().unwrap() * &lm_step;
 
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+                let mut new_params = params.clone();
                 self.apply_dx(
                     &dx_na,
-                    &mut params,
+                    &mut new_params,
                     &problem.variable_name_to_col_idx_dict,
                     &problem.fixed_variable_indexes,
                     &problem.variable_bounds,
                 );
+
+                let (residuals_new, _) = problem.compute_residual_and_jacobian(&new_params);
+
+                let cost_change = 2.0 * cost - residuals_new.squared_norm_l2();
+                println!("Model cost change. Lm_step: {:?}, Jtr: {:?}, Jtj: {:?}", lm_step.shape(), jtr.shape(), jtj.shape());
+                let model_cost_change : faer::Mat<f64> = lm_step.adjoint().mul(2.0 * jtr - jtj * &lm_step);
+
+                let rho = cost_change / model_cost_change[(0,0)];
+                if rho > 0.0 {
+                    params = new_params;
+
+                    if cost_change.abs() < 1e-6 {
+                        cost = residuals_new.squared_norm_l2();
+                        trace!("Cost change too small");
+                        break;
+                    }
+
+                    let tmp = 2.0 * rho - 1.0;
+                    let ratio : f64 = 1.0 / 3.0;
+                    u = u * ratio.max(1.0 - tmp * tmp * tmp);
+                    v = 2;
+                } else {
+                    if cost_change.abs() < 1e-6 {
+                        cost = residuals_new.squared_norm_l2();
+                        trace!("Cost change too small");
+                        break;
+                    }
+
+                    u *= 2.0;
+                    v *= 2;
+                }
+
+
+
+
             } else {
                 log::debug!("solve ax=b failed");
                 return None;
