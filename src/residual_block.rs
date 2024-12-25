@@ -35,6 +35,21 @@ impl ResidualBlock {
         }
     }
 
+    pub fn residual(&self, params: &[na::DVector<f64>], with_loss_fn: bool) -> na::DVector<f64> {
+        let mut residual = self.factor.residual_func_f64(params);
+        let squared_norm = residual.norm_squared();
+        if with_loss_fn {
+            if let Some(loss_func) = self.loss_func.as_ref() {
+                let rho = loss_func.evaluate(squared_norm);
+                // let cost = 0.5 * rho[0];
+                let corrector = Corrector::new(squared_norm, &rho);
+                corrector.correct_residuals(&mut residual);
+            }
+        } else {
+            // let cost = 0.5 * squared_norm;
+        }
+        residual
+    }
     pub fn residual_and_jacobian(
         &self,
         params: &[na::DVector<f64>],
