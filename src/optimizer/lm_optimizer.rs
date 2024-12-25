@@ -44,10 +44,12 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
         const MIN_DIAGONAL: f64 = 1e-6;
         const MAX_DIAGONAL: f64 = 1e32;
+        const FUNCTION_TOLERANCE : f64 = 1e-6;
+        const INITIAL_TRUST_REGION_RADIUS : f64 = 1e4;
 
-        // Dampening parameter
-        let mut u = 1.0 / 1e4;
-        // Dampening factor
+        // Damping parameter
+        let mut u = 1.0 / INITIAL_TRUST_REGION_RADIUS;
+        // Damping factor
         let mut v = 2;
 
         let mut last_err: f64 = 1.0;
@@ -56,6 +58,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let (residuals, mut jac) = problem.compute_residual_and_jacobian(&params);
 
             if i == 0 {
+                // On the first iteration, generate a scaling diagonal matrix, of size (num_parameters, num_parameters).
                 let cols = jac.shape().1;
                 let jacobi_scaling_vec: Vec<(usize, usize, f64)> = (0..cols)
                     .map(|c| {
@@ -82,18 +85,11 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
-            println!(
-                "{}, {}",
-                problem.total_residual_dimension, problem.total_variable_dimension
-            );
-            println!(
-                "Residual: ({:?}), Jacobi scaling diagonal ({:?}) vs jacobian ({:?})",
-                residuals.shape(),
-                jacobi_scaling_diagonal.as_ref().unwrap().shape(),
-                jac.shape()
-            );
+            // Scale the jacobian
             jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
+            
             cost = residuals.squared_norm_l2() / 2.0;
+
 
             let jtj = jac
                 .as_ref()
@@ -155,7 +151,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 let cost_change = 2.0 * cost - new_residuals.squared_norm_l2();
                 let model_cost_change: faer::Mat<f64> =
                     lm_step.adjoint().mul(2.0 * &jtr - &jtj * &lm_step);
-                println!("Model cost change. Lm_step: {:?}, Jtr: {:?}, Jtj: {:?}, Model cost change: {:?}", lm_step.shape(), jtr.shape(), jtj.shape(), model_cost_change.shape());
 
                 let rho = cost_change / model_cost_change[(0, 0)];
                 if rho > 0.0 {
