@@ -47,7 +47,7 @@ fn main() {
     ]);
 
     // initialize optimizer
-    let optimizer = tiny_solver::LevenbergMarquardtOptimizer {};
+    let optimizer = tiny_solver::GaussNewtonOptimizer {};
 
     // optimize
     let result = optimizer.optimize(&problem, &initial_values, None);
