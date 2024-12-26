@@ -6,7 +6,8 @@ use nalgebra as na;
 use plotters::prelude::*;
 
 use tiny_solver::{
-    factors, gauss_newton_optimizer, lm_optimizer, loss_functions::HuberLoss, optimizer::Optimizer, problem
+    factors, gauss_newton_optimizer, lm_optimizer, loss_functions::HuberLoss, optimizer::Optimizer,
+    problem,
 };
 
 fn read_g2o(filename: &str) -> (problem::Problem, HashMap<String, na::DVector<f64>>) {

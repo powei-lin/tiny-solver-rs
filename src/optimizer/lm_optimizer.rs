@@ -1,6 +1,4 @@
 use log::trace;
-use nalgebra::zero;
-use std::convert::identity;
 use std::ops::Mul;
 use std::{collections::HashMap, time::Instant};
 
@@ -38,23 +36,19 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
-        
+
         // On the first iteration, we'll generate a diagonal matrix of the jacobian.
         // Its shape will be (total_variable_dimension, total_variable_dimension).
         // With LM, rather than solving A * dx = b for dx, we solve for (A + lambda * diag(A)) dx = b.
         let mut jacobi_scaling_diagonal: Option<faer::sparse::SparseColMat<usize, f64>> = None;
-        let mut cost = 0.0;
 
         const MIN_DIAGONAL: f64 = 1e-6;
         const MAX_DIAGONAL: f64 = 1e32;
-        const FUNCTION_TOLERANCE: f64 = 1e-6;
 
         const INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
 
         // Damping parameter (a.k.a lambda / Marquardt parameter)
         let mut u = 1.0 / INITIAL_TRUST_REGION_RADIUS;
-        // Damping factor
-        let mut v = 2;
 
         let mut last_err: f64 = 1.0;
 
@@ -112,8 +106,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             // Scale the current jacobian by the diagonal matrix
             jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
 
-            cost = residuals.squared_norm_l2() / 2.0;
-
             // J^T * J = Matrix of shape (total_variable_dimension, total_variable_dimension)
             let jtj = jac
                 .as_ref()
@@ -123,7 +115,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 .mul(jac.as_ref());
 
             // J^T * -r = Matrix of shape (total_variable_dimension, 1)
-            let jtr = jac.as_ref().transpose().mul(-residuals);
+            let jtr = jac.as_ref().transpose().mul(-&residuals);
 
             // Regularize the diagonal of jtj between MIN_DIAGONAL and MAX_DIAGONAL.
             let mut jtj_regularized = jtj.clone();
@@ -141,7 +133,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
 
-
                 let mut new_params = params.clone();
 
                 self.apply_dx(
@@ -155,29 +146,24 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 // Compute residuals of (x + dx)
                 let new_residuals = problem.compute_residuals(&new_params, true);
 
-                let cost_change = 2.0 * cost - new_residuals.squared_norm_l2();
-
-                if cost_change.abs() < FUNCTION_TOLERANCE {
-                    trace!("Cost change too small");
-                    break;
-                }
-
-                let model_cost_change: faer::Mat<f64> =
+                // rho is the ratio between the actual reduction in error and the reduction
+                // in error if the problem were linear.
+                let actual_residual_change =
+                    &residuals.squared_norm_l2() - &new_residuals.squared_norm_l2();
+                let linear_residual_change: faer::Mat<f64> =
                     lm_step.adjoint().mul(2.0 * &jtr - &jtj * &lm_step);
+                let rho = actual_residual_change / linear_residual_change[(0, 0)];
 
-                let rho = cost_change / model_cost_change[(0, 0)];
-                
                 if rho > 0.0 {
-                    // The step appears to be converging, accept (x + dx) as the new x.
+                    // The linear model appears to be fitting, so accept (x + dx) as the new x.
                     params = new_params;
 
+                    // Increase the trust region by reducing u and v
                     let tmp = 2.0 * rho - 1.0;
-                    u = u * (1.0_f64/3.0).max(1.0 - tmp * tmp * tmp);
-                    v = 2;
+                    u = u * (1.0_f64 / 3.0).max(1.0 - tmp * tmp * tmp);
                 } else {
-                    // If there's divergence, increase the trust region and try again with the same parameters.
+                    // If there's too much divergence, reduce the trust region and try again with the same parameters.
                     u *= 2.0;
-                    v *= 2;
                 }
             } else {
                 log::debug!("solve ax=b failed");
