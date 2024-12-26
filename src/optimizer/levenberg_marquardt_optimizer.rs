@@ -10,16 +10,34 @@ use crate::optimizer;
 use crate::sparse::LinearSolverType;
 use crate::sparse::SparseLinearSolver;
 
+const DEFAULT_MIN_DIAGONAL: f64 = 1e-6;
+const DEFAULT_MAX_DIAGONAL: f64 = 1e32;
+const DEFAULT_INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
+
 #[derive(Debug)]
-pub struct LevenbergMarquardtOptimizer {}
+pub struct LevenbergMarquardtOptimizer {
+    min_diagonal: f64,
+    max_diagonal: f64,
+    initial_trust_region_radius: f64,
+}
+
 impl LevenbergMarquardtOptimizer {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(min_diagonal: f64, max_diagonal: f64, initial_trust_region_radius: f64) -> Self {
+        Self {
+            min_diagonal: min_diagonal,
+            max_diagonal: max_diagonal,
+            initial_trust_region_radius: initial_trust_region_radius,
+        }
     }
 }
+
 impl Default for LevenbergMarquardtOptimizer {
     fn default() -> Self {
-        Self::new()
+        Self {
+            min_diagonal: DEFAULT_MIN_DIAGONAL,
+            max_diagonal: DEFAULT_MAX_DIAGONAL,
+            initial_trust_region_radius: DEFAULT_INITIAL_TRUST_REGION_RADIUS,
+        }
     }
 }
 
@@ -42,13 +60,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         // With LM, rather than solving A * dx = b for dx, we solve for (A + lambda * diag(A)) dx = b.
         let mut jacobi_scaling_diagonal: Option<faer::sparse::SparseColMat<usize, f64>> = None;
 
-        const MIN_DIAGONAL: f64 = 1e-6;
-        const MAX_DIAGONAL: f64 = 1e32;
-
-        const INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
-
         // Damping parameter (a.k.a lambda / Marquardt parameter)
-        let mut u = 1.0 / INITIAL_TRUST_REGION_RADIUS;
+        let mut u = 1.0 / self.initial_trust_region_radius;
 
         let mut last_err: f64 = 1.0;
 
@@ -117,11 +130,11 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             // J^T * -r = Matrix of shape (total_variable_dimension, 1)
             let jtr = jac.as_ref().transpose().mul(-&residuals);
 
-            // Regularize the diagonal of jtj between MIN_DIAGONAL and MAX_DIAGONAL.
+            // Regularize the diagonal of jtj between the min and max diagonal values.
             let mut jtj_regularized = jtj.clone();
             for i in 0..problem.total_variable_dimension {
                 jtj_regularized[(i, i)] =
-                    (jtj.get(i, i).unwrap().max(MIN_DIAGONAL)).min(MAX_DIAGONAL);
+                    (jtj[(i, i)].max(self.min_diagonal)).min(self.max_diagonal);
             }
 
             let start = Instant::now();
@@ -151,14 +164,14 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 let actual_residual_change =
                     &residuals.squared_norm_l2() - &new_residuals.squared_norm_l2();
                 let linear_residual_change: faer::Mat<f64> =
-                    lm_step.adjoint().mul(2.0 * &jtr - &jtj * &lm_step);
+                    lm_step.transpose().mul(2.0 * &jtr - &jtj * &lm_step);
                 let rho = actual_residual_change / linear_residual_change[(0, 0)];
 
                 if rho > 0.0 {
                     // The linear model appears to be fitting, so accept (x + dx) as the new x.
                     params = new_params;
 
-                    // Increase the trust region by reducing u and v
+                    // Increase the trust region by reducing u
                     let tmp = 2.0 * rho - 1.0;
                     u = u * (1.0_f64 / 3.0).max(1.0 - tmp * tmp * tmp);
                 } else {
