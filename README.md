@@ -10,11 +10,6 @@ Inspired by [ceres-solver](https://github.com/ceres-solver/ceres-solver), [tiny-
 This is a general optimizer written in Rust, including bindings for Python. If you're familiar with ceres-solver or factor-graph optimizers, you'll find it very easy to use.
 
 ## Installation
-### python
-The python package can be installed directly from PyPI:
-```sh
-pip install tiny-solver
-```
 ### rust
 ```sh
 cargo add tiny-solver
@@ -23,12 +18,12 @@ cargo add tiny-solver
 ## Current Features
 
 - [x] Automatic Derivatives using [num-dual](https://github.com/itt-ustutt/num-dual)
-- [x] ~~Sparse QR~~, Sparse Cholesky using [faer](https://github.com/sarah-ek/faer-rs)
+- [x] Sparse QR, Sparse Cholesky using [faer](https://github.com/sarah-quinones/faer-rs)
 - [x] GaussNewtonOptimizer
-- [x] Multithreading jacobian
-- [x] loss function (Huber)
-- [x] Define factor in python
 - [x] LevenbergMarquardtOptimizer
+- [x] Multithreading jacobian
+- [x] loss functions (Huber, CauchyLoss, ArctanLoss)
+- [x] Define factor in python
 
 #### TODO
 - [ ] information matrix
