@@ -1,6 +1,6 @@
 [package]
 name = "tiny-solver"
-version = "0.12.4"
+version = "0.13.0"
 edition = "2021"
 authors = ["Powei Lin <poweilin1994@gmail.com>"]
 readme = "README.md"

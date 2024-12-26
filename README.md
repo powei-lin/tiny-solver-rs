@@ -28,9 +28,9 @@ cargo add tiny-solver
 - [x] Multithreading jacobian
 - [x] loss function (Huber)
 - [x] Define factor in python
+- [x] LevenbergMarquardtOptimizer
 
 #### TODO
-- [ ] LevenbergMarquardtOptimizer
 - [ ] information matrix
 
 ## Benchmark
