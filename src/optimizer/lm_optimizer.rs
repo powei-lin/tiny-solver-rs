@@ -38,16 +38,20 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
-
+        
+        // On the first iteration, we'll generate a diagonal matrix of the jacobian.
+        // Its shape will be (total_variable_dimension, total_variable_dimension).
+        // With LM, rather than solving A * dx = b for dx, we solve for (A + lambda * diag(A)) dx = b.
         let mut jacobi_scaling_diagonal: Option<faer::sparse::SparseColMat<usize, f64>> = None;
         let mut cost = 0.0;
 
         const MIN_DIAGONAL: f64 = 1e-6;
         const MAX_DIAGONAL: f64 = 1e32;
-        const FUNCTION_TOLERANCE : f64 = 1e-6;
-        const INITIAL_TRUST_REGION_RADIUS : f64 = 1e4;
+        const FUNCTION_TOLERANCE: f64 = 1e-6;
 
-        // Damping parameter
+        const INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
+
+        // Damping parameter (a.k.a lambda / Marquardt parameter)
         let mut u = 1.0 / INITIAL_TRUST_REGION_RADIUS;
         // Damping factor
         let mut v = 2;
@@ -58,7 +62,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let (residuals, mut jac) = problem.compute_residual_and_jacobian(&params);
 
             if i == 0 {
-                // On the first iteration, generate a scaling diagonal matrix, of size (num_parameters, num_parameters).
+                // On the first iteration, generate the diagonal of the jacobian.
                 let cols = jac.shape().1;
                 let jacobi_scaling_vec: Vec<(usize, usize, f64)> = (0..cols)
                     .map(|c| {
@@ -85,28 +89,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
-            // Scale the jacobian
-            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
-            
-            cost = residuals.squared_norm_l2() / 2.0;
-
-
-            let jtj = jac
-                .as_ref()
-                .transpose()
-                .to_col_major()
-                .unwrap()
-                .mul(jac.as_ref());
-
-            let jtr = jac.as_ref().transpose().mul(-residuals);
-
-            // Regularize the diagonal of jtj
-            let mut jtj_regularized = jtj.clone();
-            for i in 0..problem.total_variable_dimension {
-                jtj_regularized[(i, i)] =
-                    (jtj.get(i, i).unwrap().max(MIN_DIAGONAL)).min(MAX_DIAGONAL);
-            }
-
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
                 break;
@@ -121,11 +103,34 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 } else if (last_err - current_error).abs() / last_err
                     < opt_option.min_rel_error_decrease_threshold
                 {
-                    trace!("reletive error decrease low");
+                    trace!("relative error decrease low");
                     break;
                 }
             }
             last_err = current_error;
+
+            // Scale the current jacobian by the diagonal matrix
+            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
+
+            cost = residuals.squared_norm_l2() / 2.0;
+
+            // J^T * J = Matrix of shape (total_variable_dimension, total_variable_dimension)
+            let jtj = jac
+                .as_ref()
+                .transpose()
+                .to_col_major()
+                .unwrap()
+                .mul(jac.as_ref());
+
+            // J^T * -r = Matrix of shape (total_variable_dimension, 1)
+            let jtr = jac.as_ref().transpose().mul(-residuals);
+
+            // Regularize the diagonal of jtj between MIN_DIAGONAL and MAX_DIAGONAL.
+            let mut jtj_regularized = jtj.clone();
+            for i in 0..problem.total_variable_dimension {
+                jtj_regularized[(i, i)] =
+                    (jtj.get(i, i).unwrap().max(MIN_DIAGONAL)).min(MAX_DIAGONAL);
+            }
 
             let start = Instant::now();
             if let Some(lm_step) = linear_solver.solve_jtj(&jtr, &jtj_regularized) {
@@ -135,6 +140,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+
 
                 let mut new_params = params.clone();
 
@@ -146,34 +152,30 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     &problem.variable_bounds,
                 );
 
-                let (new_residuals, _) = problem.compute_residual_and_jacobian(&new_params);
+                // Compute residuals of (x + dx)
+                let new_residuals = problem.compute_residuals(&new_params, true);
 
                 let cost_change = 2.0 * cost - new_residuals.squared_norm_l2();
+
+                if cost_change.abs() < FUNCTION_TOLERANCE {
+                    trace!("Cost change too small");
+                    break;
+                }
+
                 let model_cost_change: faer::Mat<f64> =
                     lm_step.adjoint().mul(2.0 * &jtr - &jtj * &lm_step);
 
                 let rho = cost_change / model_cost_change[(0, 0)];
+                
                 if rho > 0.0 {
-                    // Accept the new parameters
+                    // The step appears to be converging, accept (x + dx) as the new x.
                     params = new_params;
 
-                    if cost_change.abs() < 1e-6 {
-                        cost = new_residuals.squared_norm_l2();
-                        trace!("Cost change too small");
-                        break;
-                    }
-
                     let tmp = 2.0 * rho - 1.0;
-                    let ratio: f64 = 1.0 / 3.0;
-                    u = u * ratio.max(1.0 - tmp * tmp * tmp);
+                    u = u * (1.0_f64/3.0).max(1.0 - tmp * tmp * tmp);
                     v = 2;
                 } else {
-                    if cost_change.abs() < 1e-6 {
-                        cost = new_residuals.squared_norm_l2();
-                        trace!("Cost change too small");
-                        break;
-                    }
-
+                    // If there's divergence, increase the trust region and try again with the same parameters.
                     u *= 2.0;
                     v *= 2;
                 }
