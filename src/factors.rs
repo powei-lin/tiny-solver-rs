@@ -64,6 +64,58 @@ impl<T: na::RealField> Factor<T> for BetweenFactorSE2 {
 }
 
 #[derive(Debug, Clone)]
+pub struct BetweenFactorSE3 {
+    pub dtx: f64,
+    pub dty: f64,
+    pub dtz: f64,
+    pub dqx: f64,
+    pub dqy: f64,
+    pub dqz: f64,
+    pub dqw: f64,
+}
+impl<T: na::RealField> Factor<T> for BetweenFactorSE3 {
+    fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+        let t_origin_k0 = &params[0];
+        let t_origin_k1 = &params[1];
+        let se3_origin_k0 = crate::helper::translation_quaternion_to_na(
+            &t_origin_k0[0],
+            &t_origin_k0[1],
+            &t_origin_k0[2],
+            &t_origin_k0[3],
+            &t_origin_k0[4],
+            &t_origin_k0[5],
+            &t_origin_k0[6],
+        );
+        let se3_origin_k1 = crate::helper::translation_quaternion_to_na(
+            &t_origin_k1[0],
+            &t_origin_k1[1],
+            &t_origin_k1[2],
+            &t_origin_k1[3],
+            &t_origin_k1[4],
+            &t_origin_k1[5],
+            &t_origin_k1[6],
+        );
+        let se3_k0_k1 = crate::helper::translation_quaternion_to_na(
+            &self.dtx, &self.dty, &self.dtz, &self.dqx, &self.dqy, &self.dqz, &self.dqw,
+        );
+
+        let se3_diff = se3_origin_k1.inverse() * se3_origin_k0 * se3_k0_k1.cast();
+
+        let r_diff = se3_diff.rotation.coords.clone();
+
+        na::dvector![
+            r_diff[0].clone(),
+            r_diff[1].clone(),
+            r_diff[2].clone(),
+            T::one() - r_diff[3].clone(),
+            se3_diff.translation.x.clone(),
+            se3_diff.translation.y.clone(),
+            se3_diff.translation.z.clone(),
+        ]
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct PriorFactor {
     pub v: na::DVector<f64>,
 }

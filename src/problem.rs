@@ -6,6 +6,7 @@ use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
 
+use crate::parameter_block::ParameterBlock;
 use crate::{factors, loss_functions, residual_block};
 
 pub struct Problem {
@@ -180,6 +181,46 @@ impl Problem {
         .unwrap();
         (residual_faer, jacobian_faer)
     }
+    pub fn compute_residual_and_jacobian2(
+        &self,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+    ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
+        // multi
+        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
+            self.total_residual_dimension,
+        )));
+        let jacobian_list = Arc::new(Mutex::new(Vec::<JacobianValue>::new()));
+
+        self.residual_blocks
+            .par_iter()
+            .for_each(|(_, residual_block)| {
+                self.compute_residual_and_jacobian_impl2(
+                    residual_block,
+                    parameter_blocks,
+                    &total_residual,
+                    &jacobian_list,
+                )
+            });
+
+        let total_residual = Arc::try_unwrap(total_residual)
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        let jacobian_list = Arc::try_unwrap(jacobian_list)
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        // end
+
+        let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
+        let jacobian_faer = SparseColMat::try_new_from_triplets(
+            self.total_residual_dimension,
+            self.total_variable_dimension,
+            &jacobian_list,
+        )
+        .unwrap();
+        (residual_faer, jacobian_faer)
+    }
 
     fn compute_residual_impl(
         &self,
@@ -222,6 +263,54 @@ impl Problem {
                 params.push(param.clone());
                 variable_local_idx_size_list.push((count_variable_local_idx, param.shape().0));
                 count_variable_local_idx += param.shape().0;
+            };
+        }
+        let (res, jac) = residual_block.residual_and_jacobian(&params);
+
+        {
+            let mut total_residual = total_residual.lock().unwrap();
+            total_residual
+                .rows_mut(
+                    residual_block.residual_row_start_idx,
+                    residual_block.dim_residual,
+                )
+                .copy_from(&res);
+        }
+
+        for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
+            if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(var_key) {
+                let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
+                let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
+                let mut local_jacobian_list = Vec::new();
+                for row_idx in 0..jac.shape().0 {
+                    for col_idx in 0..var_size {
+                        let global_row_idx = residual_block.residual_row_start_idx + row_idx;
+                        let global_col_idx = variable_global_idx + col_idx;
+                        let value = variable_jac[(row_idx, col_idx)];
+                        local_jacobian_list.push((global_row_idx, global_col_idx, value));
+                    }
+                }
+                let mut jacobian_list = jacobian_list.lock().unwrap();
+                jacobian_list.extend(local_jacobian_list);
+            }
+        }
+    }
+    fn compute_residual_and_jacobian_impl2(
+        &self,
+        residual_block: &crate::ResidualBlock,
+        variable_key_value_map: &HashMap<String, ParameterBlock>,
+        total_residual: &Arc<Mutex<na::DVector<f64>>>,
+        jacobian_list: &Arc<Mutex<Vec<JacobianValue>>>,
+    ) {
+        let mut params = Vec::<na::DVector<f64>>::new();
+        let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
+        let mut count_variable_local_idx: usize = 0;
+        for var_key in &residual_block.variable_key_list {
+            if let Some(param) = variable_key_value_map.get(var_key) {
+                params.push(param.params.clone());
+                variable_local_idx_size_list
+                    .push((count_variable_local_idx, param.params.shape().0));
+                count_variable_local_idx += param.params.shape().0;
             };
         }
         let (res, jac) = residual_block.residual_and_jacobian(&params);

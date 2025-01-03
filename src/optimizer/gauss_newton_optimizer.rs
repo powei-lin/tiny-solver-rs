@@ -6,6 +6,7 @@ use faer_ext::IntoNalgebra;
 use crate::common::OptimizerOptions;
 use crate::linear;
 use crate::optimizer;
+use crate::parameter_block::ParameterBlock;
 use crate::sparse::LinearSolverType;
 use crate::sparse::SparseLinearSolver;
 
@@ -30,6 +31,19 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         optimizer_option: Option<OptimizerOptions>,
     ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
         let mut params = initial_values.clone();
+        let mut parameter_blocks: HashMap<String, ParameterBlock> = initial_values
+            .iter()
+            .map(|(k, v)| {
+                let mut p_block = ParameterBlock::from_vec(v.clone());
+                if let Some(indexes) = problem.fixed_variable_indexes.get(k) {
+                    p_block.fixed_variables = indexes.clone();
+                }
+                if let Some(bounds) = problem.variable_bounds.get(k) {
+                    p_block.variable_bounds = bounds.clone();
+                }
+                (k.to_owned(), p_block)
+            })
+            .collect();
         let opt_option = optimizer_option.unwrap_or_default();
         let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
