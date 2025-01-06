@@ -298,22 +298,22 @@ impl Problem {
     fn compute_residual_and_jacobian_impl2(
         &self,
         residual_block: &crate::ResidualBlock,
-        variable_key_value_map: &HashMap<String, ParameterBlock>,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
         jacobian_list: &Arc<Mutex<Vec<JacobianValue>>>,
     ) {
-        let mut params = Vec::<na::DVector<f64>>::new();
+        let mut params = Vec::new();
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
         let mut count_variable_local_idx: usize = 0;
         for var_key in &residual_block.variable_key_list {
-            if let Some(param) = variable_key_value_map.get(var_key) {
-                params.push(param.params.clone());
+            if let Some(param) = parameter_blocks.get(var_key) {
+                params.push(param);
                 variable_local_idx_size_list
                     .push((count_variable_local_idx, param.params.shape().0));
                 count_variable_local_idx += param.params.shape().0;
             };
         }
-        let (res, jac) = residual_block.residual_and_jacobian(&params);
+        let (res, jac) = residual_block.residual_and_jacobian2(&params);
 
         {
             let mut total_residual = total_residual.lock().unwrap();

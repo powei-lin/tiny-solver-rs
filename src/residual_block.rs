@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use crate::corrector::Corrector;
 use crate::factors::FactorImpl;
 use crate::loss_functions::Loss;
+use crate::parameter_block::ParameterBlock;
 
 pub struct ResidualBlock {
     pub residual_block_id: usize,
@@ -65,6 +66,51 @@ impl ResidualBlock {
                 na::DVector::from_row_iterator(
                     param.nrows(),
                     param.row_iter().enumerate().map(|(j, x)| {
+                        num_dual::DualDVec64::new(
+                            x[0],
+                            num_dual::Derivative::some(na::DVector::from(
+                                indentity_mat.column(variable_row_idx_vec[i][j]),
+                            )),
+                        )
+                    }),
+                )
+            })
+            .collect();
+        let residual_with_jacobian = self.factor.residual_func_dual(&params_with_dual);
+        let mut residual = residual_with_jacobian.map(|x| x.re);
+        let jacobian = residual_with_jacobian
+            .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
+        let mut jacobian =
+            na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
+                jacobian[r][c]
+            });
+        let squared_norm = residual.norm_squared();
+        if let Some(loss_func) = self.loss_func.as_ref() {
+            let rho = loss_func.evaluate(squared_norm);
+            // let cost = 0.5 * rho[0];
+            let corrector = Corrector::new(squared_norm, &rho);
+            corrector.correct_jacobian(&residual, &mut jacobian);
+            corrector.correct_residuals(&mut residual);
+        } else {
+            // let cost = 0.5 * squared_norm;
+        }
+        (residual, jacobian)
+    }
+    pub fn residual_and_jacobian2(
+        &self,
+        params: &[&ParameterBlock],
+    ) -> (na::DVector<f64>, na::DMatrix<f64>) {
+        let variable_rows: Vec<usize> = params.iter().map(|x| x.tangent_size()).collect();
+        let dim_variable = variable_rows.iter().sum::<usize>();
+        let variable_row_idx_vec = get_variable_rows(&variable_rows);
+        let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
+        let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
+            .par_iter()
+            .enumerate()
+            .map(|(i, param)| {
+                na::DVector::from_row_iterator(
+                    param.tangent_size(),
+                    param.params.row_iter().enumerate().map(|(j, x)| {
                         num_dual::DualDVec64::new(
                             x[0],
                             num_dual::Derivative::some(na::DVector::from(

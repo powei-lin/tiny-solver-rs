@@ -30,7 +30,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
     ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
-        let mut params = initial_values.clone();
         let mut parameter_blocks: HashMap<String, ParameterBlock> = initial_values
             .iter()
             .map(|(k, v)| {
@@ -53,7 +52,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let mut last_err: f64 = 1.0;
 
         for i in 0..opt_option.max_iteration {
-            let (residuals, jac) = problem.compute_residual_and_jacobian(&params);
+            let (residuals, jac) = problem.compute_residual_and_jacobian2(&parameter_blocks);
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
@@ -83,18 +82,20 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
-                self.apply_dx(
+                self.apply_dx2(
                     &dx_na,
-                    &mut params,
+                    &mut parameter_blocks,
                     &problem.variable_name_to_col_idx_dict,
-                    &problem.fixed_variable_indexes,
-                    &problem.variable_bounds,
                 );
             } else {
                 log::debug!("solve ax=b failed");
                 return None;
             }
         }
+        let params = parameter_blocks
+            .iter()
+            .map(|(k, v)| (k.to_owned(), v.params.clone()))
+            .collect();
         Some(params)
     }
 }
