@@ -253,7 +253,7 @@ impl Problem {
                 count_variable_local_idx += param.tangent_size();
             };
         }
-        let (res, jac) = residual_block.residual_and_jacobian2(&params);
+        let (res, jac) = residual_block.residual_and_jacobian(&params);
         {
             let mut total_residual = total_residual.lock().unwrap();
             total_residual
