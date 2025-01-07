@@ -1,5 +1,7 @@
 use nalgebra as na;
 
+use crate::manifold::se3::SE3;
+
 pub trait Factor<T: na::RealField>: Send + Sync {
     fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T>;
 }
@@ -60,6 +62,35 @@ impl<T: na::RealField> Factor<T> for BetweenFactorSE2 {
             se2_diff.translation.y.clone(),
             se2_diff.rotation.angle()
         ]
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BetweenFactorSE3 {
+    pub dtx: f64,
+    pub dty: f64,
+    pub dtz: f64,
+    pub dqx: f64,
+    pub dqy: f64,
+    pub dqz: f64,
+    pub dqw: f64,
+}
+impl<T: na::RealField> Factor<T> for BetweenFactorSE3 {
+    fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+        let t_origin_k0 = &params[0];
+        let t_origin_k1 = &params[1];
+        let se3_origin_k0 = SE3::from_vec(t_origin_k0.as_view());
+        let se3_origin_k1 = SE3::from_vec(t_origin_k1.as_view());
+
+        let se3_k0_k1 = SE3::from_vec(
+            na::dvector![self.dqx, self.dqy, self.dqz, self.dqw, self.dtx, self.dty, self.dtz,]
+                .as_view(),
+        )
+        .cast::<T>();
+
+        let se3_diff = se3_origin_k1.inverse() * se3_origin_k0 * se3_k0_k1.cast();
+
+        se3_diff.log()
     }
 }
 

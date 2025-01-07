@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use crate::corrector::Corrector;
 use crate::factors::FactorImpl;
 use crate::loss_functions::Loss;
+use crate::parameter_block::ParameterBlock;
 
 pub struct ResidualBlock {
     pub residual_block_id: usize,
@@ -18,7 +19,7 @@ impl ResidualBlock {
         residual_block_id: usize,
         dim_residual: usize,
         residual_row_start_idx: usize,
-        variable_key_size_list: &[(&str, usize)],
+        variable_key_size_list: &[&str],
         factor: Box<dyn FactorImpl + Send>,
         loss_func: Option<Box<dyn Loss + Send>>,
     ) -> Self {
@@ -28,15 +29,16 @@ impl ResidualBlock {
             residual_row_start_idx,
             variable_key_list: variable_key_size_list
                 .iter()
-                .map(|s| s.0.to_string())
+                .map(|s| s.to_string())
                 .collect(),
             factor,
             loss_func,
         }
     }
 
-    pub fn residual(&self, params: &[na::DVector<f64>], with_loss_fn: bool) -> na::DVector<f64> {
-        let mut residual = self.factor.residual_func_f64(params);
+    pub fn residual(&self, params: &[&ParameterBlock], with_loss_fn: bool) -> na::DVector<f64> {
+        let param_vec: Vec<_> = params.iter().map(|p| p.params.clone()).collect();
+        let mut residual = self.factor.residual_func_f64(&param_vec);
         let squared_norm = residual.norm_squared();
         if with_loss_fn {
             if let Some(loss_func) = self.loss_func.as_ref() {
@@ -52,30 +54,36 @@ impl ResidualBlock {
     }
     pub fn residual_and_jacobian(
         &self,
-        params: &[na::DVector<f64>],
+        params: &[&ParameterBlock],
     ) -> (na::DVector<f64>, na::DMatrix<f64>) {
-        let variable_rows: Vec<usize> = params.iter().map(|x| x.shape().0).collect();
+        let variable_rows: Vec<usize> = params.iter().map(|x| x.tangent_size()).collect();
         let dim_variable = variable_rows.iter().sum::<usize>();
         let variable_row_idx_vec = get_variable_rows(&variable_rows);
         let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
-        let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
+
+        // ambient size
+        let params_plus_tangent_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
             .par_iter()
             .enumerate()
-            .map(|(i, param)| {
-                na::DVector::from_row_iterator(
-                    param.nrows(),
-                    param.row_iter().enumerate().map(|(j, x)| {
+            .map(|(param_idx, param)| {
+                let zeros_with_dual = na::DVector::from_row_iterator(
+                    param.tangent_size(),
+                    (0..param.tangent_size()).map(|j| {
                         num_dual::DualDVec64::new(
-                            x[0],
+                            0.0,
                             num_dual::Derivative::some(na::DVector::from(
-                                indentity_mat.column(variable_row_idx_vec[i][j]),
+                                indentity_mat.column(variable_row_idx_vec[param_idx][j]),
                             )),
                         )
                     }),
-                )
+                );
+                let param_plus_dual = param.plus_dual(zeros_with_dual.as_view());
+                param_plus_dual
             })
             .collect();
-        let residual_with_jacobian = self.factor.residual_func_dual(&params_with_dual);
+
+        // tangent size
+        let residual_with_jacobian = self.factor.residual_func_dual(&params_plus_tangent_dual);
         let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));

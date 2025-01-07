@@ -1,6 +1,6 @@
 [package]
 name = "tiny-solver"
-version = "0.13.0"
+version = "0.14.0"
 edition = "2021"
 authors = ["Powei Lin <poweilin1994@gmail.com>"]
 readme = "README.md"
@@ -15,7 +15,7 @@ exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*", "tests/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-faer = "0.20.1"
+faer = "0.20.2"
 faer-ext = { version = "0.4.1", features = ["nalgebra"] }
 log = "0.4.21"
 nalgebra = "0.33.2"
@@ -25,17 +25,24 @@ numpy = { version = "0.23.0", features = ["nalgebra"], optional = true }
 pyo3 = { version = "0.23.3", features = ["abi3", "abi3-py38"], optional = true }
 # pyo3-log = { version = "0.9.0", optional = true }
 rayon = "1.9.0"
+simba = "0.9.0"
 
 [[example]]
 name = "m3500_benchmark"
 path = "examples/m3500_benchmark.rs"
+
+[[example]]
+name = "sphere2500"
+
+[[example]]
+name = "parking-garage"
 
 [features]
 python = ["num-dual/python", "numpy", "pyo3"]
 
 [dev-dependencies]
 env_logger = "0.11.6"
-itertools = "0.13.0"
+itertools = "0.14.0"
 plotters = "0.3.6"
 
 [profile.dev.package.faer]
@@ -43,4 +50,3 @@ opt-level = 3
 
 [lib]
 name = "tiny_solver"
-# crate-type = ["staticlib"]

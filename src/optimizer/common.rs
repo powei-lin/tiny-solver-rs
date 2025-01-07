@@ -3,6 +3,7 @@ use std::ops::Add;
 
 use nalgebra as na;
 
+use crate::parameter_block::ParameterBlock;
 use crate::problem;
 use crate::sparse::LinearSolverType;
 
@@ -41,6 +42,21 @@ pub trait Optimizer {
                 param.copy_from(&updated_param);
             }
         }
+    }
+    fn apply_dx2(
+        &self,
+        dx: &na::DVector<f64>,
+        params: &mut HashMap<String, ParameterBlock>,
+        variable_name_to_col_idx_dict: &HashMap<String, usize>,
+    ) {
+        params.iter_mut().for_each(|(key, param)| {
+            if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
+                let var_size = param.tangent_size();
+                param.update_params(param.plus_f64(dx.rows(*col_idx, var_size)));
+            }
+        });
+        // for (key, param) in params.par_iter_mut() {
+        // }
     }
 }
 
