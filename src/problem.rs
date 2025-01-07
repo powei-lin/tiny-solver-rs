@@ -30,11 +30,9 @@ type JacobianValue = (usize, usize, f64);
 impl Problem {
     pub fn new() -> Problem {
         Problem {
-            // total_variable_dimension: 0,
             total_residual_dimension: 0,
             residual_id_count: 0,
             residual_blocks: HashMap::new(),
-            // variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
             variable_manifold: HashMap::new(),

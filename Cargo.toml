@@ -34,6 +34,9 @@ path = "examples/m3500_benchmark.rs"
 [[example]]
 name = "sphere2500"
 
+[[example]]
+name = "parking-garage"
+
 [features]
 python = ["num-dual/python", "numpy", "pyo3"]
 
