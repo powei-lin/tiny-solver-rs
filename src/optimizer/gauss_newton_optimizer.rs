@@ -30,19 +30,9 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
     ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
-        let mut parameter_blocks: HashMap<String, ParameterBlock> = initial_values
-            .iter()
-            .map(|(k, v)| {
-                let mut p_block = ParameterBlock::from_vec(v.clone());
-                if let Some(indexes) = problem.fixed_variable_indexes.get(k) {
-                    p_block.fixed_variables = indexes.clone();
-                }
-                if let Some(bounds) = problem.variable_bounds.get(k) {
-                    p_block.variable_bounds = bounds.clone();
-                }
-                (k.to_owned(), p_block)
-            })
-            .collect();
+        let mut parameter_blocks: HashMap<String, ParameterBlock> =
+            problem.initialize_parameter_blocks(initial_values);
+
         let variable_name_to_col_idx_dict =
             problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
         let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
@@ -56,7 +46,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let mut last_err: f64 = 1.0;
 
         for i in 0..opt_option.max_iteration {
-            let (residuals, jac) = problem.compute_residual_and_jacobian2(
+            let (residuals, jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
                 total_variable_dimension,
@@ -88,7 +78,6 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             if let Some(dx) = linear_solver.solve(&residuals, &jac) {
                 let duration = start.elapsed();
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
-
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
                 self.apply_dx2(
                     &dx_na,

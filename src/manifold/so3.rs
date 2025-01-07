@@ -168,7 +168,8 @@ impl<T: na::RealField> Mul<na::VectorView3<'_, T>> for &SO3<T> {
     }
 }
 
-pub struct QuaternionManifold {}
+#[derive(Debug, Clone)]
+pub struct QuaternionManifold;
 impl<T: na::RealField> AutoDiffManifold<T> for QuaternionManifold {
     fn plus(
         &self,

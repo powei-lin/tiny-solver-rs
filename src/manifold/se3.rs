@@ -2,22 +2,22 @@ use std::{num::NonZero, ops::Mul};
 
 use nalgebra as na;
 
-use super::{lie_group::LieGroup, so3::SO3, AutoDiffManifold, Manifold};
+use super::{so3::SO3, AutoDiffManifold, Manifold};
 
 pub struct SE3<T: na::RealField> {
-    xyz: na::Vector3<T>,
-    rot: SO3<T>,
+    pub xyz: na::Vector3<T>,
+    pub rot: SO3<T>,
 }
 
-impl<T: na::RealField> LieGroup<T> for SE3<T> {
-    const TANGENT_SIZE: usize = 6;
+// impl<T: na::RealField> LieGroup for SE3<T> {
+//     const TANGENT_SIZE: usize = 6;
 
-    fn exp(xi: nalgebra::DVectorView<T>) -> Self {
-        let rot = SO3::<T>::exp(xi.rows(0, 3).as_view());
-        let xyz = na::Vector3::new(xi[3].clone(), xi[4].clone(), xi[5].clone());
-        SE3 { xyz, rot }
-    }
-}
+//     fn exp<T1: na::RealField>(xi: nalgebra::DVectorView<T1>) -> Self {
+//         let rot = SO3::<T1>::exp(xi.rows(0, 3).as_view());
+//         let xyz = na::Vector3::new(xi[3].clone(), xi[4].clone(), xi[5].clone());
+//         SE3 { xyz, rot }.cast::<T>()
+//     }
+// }
 
 impl<T: na::RealField> SE3<T> {
     /// [qx, qy, qz, qw, tx, ty, tz]
@@ -133,7 +133,20 @@ impl<T: na::RealField> Mul<na::VectorView3<'_, T>> for SE3<T> {
     }
 }
 
-pub struct SE3Manifold {}
+impl<T: na::RealField> Mul<na::VectorView3<'_, T>> for &SE3<T> {
+    type Output = na::Vector3<T>;
+
+    fn mul(self, rhs: na::VectorView3<'_, T>) -> Self::Output {
+        let qv = SO3::from_xyzw(rhs[0].clone(), rhs[1].clone(), rhs[2].clone(), T::zero());
+        let rinv = self.rot.inverse();
+        let v_rot = ((&self.rot * &qv) * rinv).to_vec();
+        let v = na::Vector3::new(v_rot[0].clone(), v_rot[1].clone(), v_rot[2].clone());
+        v + self.xyz.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SE3Manifold;
 impl<T: na::RealField> AutoDiffManifold<T> for SE3Manifold {
     fn plus(
         &self,

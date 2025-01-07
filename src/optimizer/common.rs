@@ -49,12 +49,14 @@ pub trait Optimizer {
         params: &mut HashMap<String, ParameterBlock>,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
     ) {
-        for (key, param) in params.iter_mut() {
+        params.iter_mut().for_each(|(key, param)| {
             if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
                 let var_size = param.tangent_size();
                 param.update_params(param.plus_f64(dx.rows(*col_idx, var_size)));
             }
-        }
+        });
+        // for (key, param) in params.par_iter_mut() {
+        // }
     }
 }
 

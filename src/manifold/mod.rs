@@ -3,7 +3,6 @@ use std::num::NonZero;
 use nalgebra as na;
 use num_dual::DualDVec64;
 
-pub mod lie_group;
 pub mod se3;
 pub mod so3;
 

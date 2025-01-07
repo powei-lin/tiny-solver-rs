@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    num::NonZero,
+    sync::Arc,
 };
 
 use nalgebra as na;
@@ -8,11 +8,12 @@ use num_dual::DualDVec64;
 
 use crate::manifold::Manifold;
 
+#[derive(Clone)]
 pub struct ParameterBlock {
     pub params: na::DVector<f64>,
     pub fixed_variables: HashSet<usize>,
     pub variable_bounds: HashMap<usize, (f64, f64)>,
-    pub manifold: Option<Box<dyn Manifold + Sync>>,
+    pub manifold: Option<Arc<dyn Manifold + Sync + Send>>,
 }
 
 impl ParameterBlock {
@@ -24,7 +25,7 @@ impl ParameterBlock {
             manifold: None,
         }
     }
-    pub fn set_manifold(&mut self, manifold: Box<dyn Manifold + Sync>) {
+    pub fn set_manifold(&mut self, manifold: Arc<dyn Manifold + Sync + Send>) {
         self.manifold = Some(manifold);
     }
     pub fn ambient_size(&self) -> usize {

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use nalgebra as na;
 use tiny_solver::{self, Optimizer};
 
-struct CustomFactor {}
+struct CustomFactor;
 // define your own residual function and the jacobian will be auto generated
 impl<T: na::RealField> tiny_solver::factors::Factor<T> for CustomFactor {
     fn residual_func(&self, params: &[nalgebra::DVector<T>]) -> nalgebra::DVector<T> {
@@ -31,14 +31,14 @@ fn main() {
     // add residual x needs to be close to 3.0
     problem.add_residual_block(
         1,
-        &[("x", 1)],
+        &["x"],
         Box::new(tiny_solver::factors::PriorFactor {
             v: na::dvector![3.0],
         }),
         None,
     );
     // add custom residual for x and yz
-    problem.add_residual_block(2, &[("x", 1), ("yz", 2)], Box::new(CustomFactor {}), None);
+    problem.add_residual_block(2, &["x", "yz"], Box::new(CustomFactor), None);
 
     // the initial values for x is 0.7 and yz is [-30.2, 123.4]
     let initial_values = HashMap::<String, na::DVector<f64>>::from([

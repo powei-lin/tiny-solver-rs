@@ -19,7 +19,7 @@ impl ResidualBlock {
         residual_block_id: usize,
         dim_residual: usize,
         residual_row_start_idx: usize,
-        variable_key_size_list: &[(&str, usize)],
+        variable_key_size_list: &[&str],
         factor: Box<dyn FactorImpl + Send>,
         loss_func: Option<Box<dyn Loss + Send>>,
     ) -> Self {
@@ -29,15 +29,16 @@ impl ResidualBlock {
             residual_row_start_idx,
             variable_key_list: variable_key_size_list
                 .iter()
-                .map(|s| s.0.to_string())
+                .map(|s| s.to_string())
                 .collect(),
             factor,
             loss_func,
         }
     }
 
-    pub fn residual(&self, params: &[na::DVector<f64>], with_loss_fn: bool) -> na::DVector<f64> {
-        let mut residual = self.factor.residual_func_f64(params);
+    pub fn residual(&self, params: &[&ParameterBlock], with_loss_fn: bool) -> na::DVector<f64> {
+        let param_vec: Vec<_> = params.iter().map(|p| p.params.clone()).collect();
+        let mut residual = self.factor.residual_func_f64(&param_vec);
         let squared_norm = residual.norm_squared();
         if with_loss_fn {
             if let Some(loss_func) = self.loss_func.as_ref() {
@@ -123,17 +124,6 @@ impl ResidualBlock {
                 );
                 let param_plus_dual = param.plus_dual(zeros_with_dual.as_view());
                 param_plus_dual
-                // na::DVector::from_row_iterator(
-                //     param.ambient_size(),
-                //     param.params.row_iter().enumerate().map(|(j, x)| {
-                //         num_dual::DualDVec64::new(
-                //             x[0],
-                //             num_dual::Derivative::some(na::DVector::from(
-                //                 indentity_mat.column(variable_row_idx_vec[param_idx][j]),
-                //             )),
-                //         )
-                //     }),
-                // )
             })
             .collect();
 

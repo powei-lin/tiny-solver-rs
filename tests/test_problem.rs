@@ -8,9 +8,7 @@ mod tests {
     #[test]
     fn new_problem() {
         let problem = tiny_solver::Problem::new();
-        assert_eq!(problem.total_variable_dimension, 0);
         assert_eq!(problem.total_residual_dimension, 0);
-        assert_eq!(problem.variable_name_to_col_idx_dict.len(), 0);
         assert_eq!(problem.fixed_variable_indexes.len(), 0);
         assert_eq!(problem.variable_bounds.len(), 0);
     }
@@ -20,7 +18,7 @@ mod tests {
         let mut problem = tiny_solver::Problem::new();
         problem.add_residual_block(
             1,
-            &[("x", 1)],
+            &["x"],
             Box::new(tiny_solver::factors::PriorFactor {
                 v: na::dvector![3.0],
             }),
@@ -28,8 +26,6 @@ mod tests {
         );
 
         assert_eq!(problem.total_residual_dimension, 1);
-        assert_eq!(problem.total_variable_dimension, 1);
-        assert_eq!(problem.variable_name_to_col_idx_dict["x"], 0);
     }
 
     #[test]
@@ -85,33 +81,11 @@ mod tests {
     }
 
     #[test]
-    fn combine_variables() {
-        let mut problem = tiny_solver::Problem::new();
-        problem.add_residual_block(
-            1,
-            &[("x", 1), ("y", 2)],
-            Box::new(tiny_solver::factors::PriorFactor {
-                v: na::dvector![3.0],
-            }),
-            None,
-        );
-
-        let variable_key_value_map = HashMap::from([
-            ("x".to_string(), na::dvector![0.0]),
-            ("y".to_string(), na::dvector![1.0, 2.0]),
-        ]);
-        let combined_variables = problem.combine_variables(&variable_key_value_map);
-        assert_eq!(combined_variables.len(), problem.total_variable_dimension);
-        assert_eq!(combined_variables[0], 0.0);
-        assert_eq!(combined_variables[1], 1.0);
-        assert_eq!(combined_variables[2], 2.0);
-    }
-    #[test]
     fn compute_residual_and_jacobian() {
         let mut problem = tiny_solver::Problem::new();
         problem.add_residual_block(
             1,
-            &[("x", 1)],
+            &["x"],
             Box::new(tiny_solver::factors::PriorFactor {
                 v: na::dvector![3.0],
             }),
@@ -135,15 +109,23 @@ mod tests {
             }
         }
 
-        problem.add_residual_block(2, &[("x", 1), ("yz", 2)], Box::new(CustomFactor {}), None);
+        problem.add_residual_block(2, &["x", "yz"], Box::new(CustomFactor {}), None);
 
         // the initial values for x is 0.7 and yz is [-30.2, 123.4]
         let initial_values = HashMap::<String, na::DVector<f64>>::from([
             ("x".to_string(), na::dvector![0.7]),
             ("yz".to_string(), na::dvector![-30.2, 123.4]),
         ]);
+        let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
+        let variable_name_to_col_idx_dict =
+            problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
+        let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
 
-        let (residuals, jac) = problem.compute_residual_and_jacobian(&initial_values);
+        let (residuals, jac) = problem.compute_residual_and_jacobian(
+            &parameter_blocks,
+            &variable_name_to_col_idx_dict,
+            total_variable_dimension,
+        );
 
         assert_eq!(residuals.nrows(), 3);
         assert_eq!(residuals.ncols(), 1);
