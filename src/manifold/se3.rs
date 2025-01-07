@@ -9,16 +9,6 @@ pub struct SE3<T: na::RealField> {
     pub rot: SO3<T>,
 }
 
-// impl<T: na::RealField> LieGroup for SE3<T> {
-//     const TANGENT_SIZE: usize = 6;
-
-//     fn exp<T1: na::RealField>(xi: nalgebra::DVectorView<T1>) -> Self {
-//         let rot = SO3::<T1>::exp(xi.rows(0, 3).as_view());
-//         let xyz = na::Vector3::new(xi[3].clone(), xi[4].clone(), xi[5].clone());
-//         SE3 { xyz, rot }.cast::<T>()
-//     }
-// }
-
 impl<T: na::RealField> SE3<T> {
     /// [qx, qy, qz, qw, tx, ty, tz]
     pub fn from_vec(qxyzw_txyz: na::DVectorView<T>) -> Self {
