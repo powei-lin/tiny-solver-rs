@@ -43,6 +43,10 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 (k.to_owned(), p_block)
             })
             .collect();
+        let variable_name_to_col_idx_dict =
+            problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
+        let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
+
         let opt_option = optimizer_option.unwrap_or_default();
         let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
@@ -52,7 +56,11 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         let mut last_err: f64 = 1.0;
 
         for i in 0..opt_option.max_iteration {
-            let (residuals, jac) = problem.compute_residual_and_jacobian2(&parameter_blocks);
+            let (residuals, jac) = problem.compute_residual_and_jacobian2(
+                &parameter_blocks,
+                &variable_name_to_col_idx_dict,
+                total_variable_dimension,
+            );
             let current_error = residuals.norm_l2();
             trace!("iter:{} total err:{}", i, current_error);
 
@@ -85,7 +93,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 self.apply_dx2(
                     &dx_na,
                     &mut parameter_blocks,
-                    &problem.variable_name_to_col_idx_dict,
+                    &variable_name_to_col_idx_dict,
                 );
             } else {
                 log::debug!("solve ax=b failed");

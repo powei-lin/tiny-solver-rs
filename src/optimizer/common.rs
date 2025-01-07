@@ -52,7 +52,7 @@ pub trait Optimizer {
         for (key, param) in params.iter_mut() {
             if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
                 let var_size = param.tangent_size();
-                param.plus(dx.rows(*col_idx, var_size));
+                param.update_params(param.plus_f64(dx.rows(*col_idx, var_size)));
             }
         }
     }

@@ -104,24 +104,41 @@ impl ResidualBlock {
         let dim_variable = variable_rows.iter().sum::<usize>();
         let variable_row_idx_vec = get_variable_rows(&variable_rows);
         let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
-        let params_with_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
+
+        // ambient size
+        let params_plus_tangent_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
             .par_iter()
             .enumerate()
-            .map(|(i, param)| {
-                na::DVector::from_row_iterator(
+            .map(|(param_idx, param)| {
+                let zeros_with_dual = na::DVector::from_row_iterator(
                     param.tangent_size(),
-                    param.params.row_iter().enumerate().map(|(j, x)| {
+                    (0..param.tangent_size()).map(|j| {
                         num_dual::DualDVec64::new(
-                            x[0],
+                            0.0,
                             num_dual::Derivative::some(na::DVector::from(
-                                indentity_mat.column(variable_row_idx_vec[i][j]),
+                                indentity_mat.column(variable_row_idx_vec[param_idx][j]),
                             )),
                         )
                     }),
-                )
+                );
+                let param_plus_dual = param.plus_dual(zeros_with_dual.as_view());
+                param_plus_dual
+                // na::DVector::from_row_iterator(
+                //     param.ambient_size(),
+                //     param.params.row_iter().enumerate().map(|(j, x)| {
+                //         num_dual::DualDVec64::new(
+                //             x[0],
+                //             num_dual::Derivative::some(na::DVector::from(
+                //                 indentity_mat.column(variable_row_idx_vec[param_idx][j]),
+                //             )),
+                //         )
+                //     }),
+                // )
             })
             .collect();
-        let residual_with_jacobian = self.factor.residual_func_dual(&params_with_dual);
+
+        // tangent size
+        let residual_with_jacobian = self.factor.residual_func_dual(&params_plus_tangent_dual);
         let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));

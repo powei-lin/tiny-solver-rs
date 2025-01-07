@@ -6,17 +6,19 @@ use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
 
+use crate::manifold::Manifold;
 use crate::parameter_block::ParameterBlock;
 use crate::{factors, loss_functions, residual_block};
 
 pub struct Problem {
-    pub total_variable_dimension: usize,
+    // pub total_variable_dimension: usize,
     pub total_residual_dimension: usize,
     residual_id_count: usize,
     residual_blocks: HashMap<usize, residual_block::ResidualBlock>,
-    pub variable_name_to_col_idx_dict: HashMap<String, usize>,
+    // pub variable_name_to_col_idx_dict: HashMap<String, usize>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
+    pub variable_manifold: HashMap<String, Box<dyn Manifold + Sync>>,
 }
 impl Default for Problem {
     fn default() -> Self {
@@ -30,14 +32,30 @@ type JacobianValue = (usize, usize, f64);
 impl Problem {
     pub fn new() -> Problem {
         Problem {
-            total_variable_dimension: 0,
+            // total_variable_dimension: 0,
             total_residual_dimension: 0,
             residual_id_count: 0,
             residual_blocks: HashMap::new(),
-            variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
+            // variable_name_to_col_idx_dict: HashMap::<String, usize>::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
+            variable_manifold: HashMap::new(),
         }
+    }
+
+    pub fn get_variable_name_to_col_idx_dict(
+        &self,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+    ) -> HashMap<String, usize> {
+        let mut count_col_idx = 0;
+        let mut variable_name_to_col_idx_dict = HashMap::new();
+        parameter_blocks
+            .iter()
+            .for_each(|(param_name, param_block)| {
+                variable_name_to_col_idx_dict.insert(param_name.to_owned(), count_col_idx);
+                count_col_idx += param_block.tangent_size();
+            });
+        variable_name_to_col_idx_dict
     }
     pub fn add_residual_block(
         &mut self,
@@ -58,14 +76,14 @@ impl Problem {
             ),
         );
         self.residual_id_count += 1;
-        for (key, variable_dimesion) in variable_key_size_list {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                self.variable_name_to_col_idx_dict.entry(key.to_string())
-            {
-                e.insert(self.total_variable_dimension);
-                self.total_variable_dimension += variable_dimesion;
-            }
-        }
+        // for (key, variable_dimesion) in variable_key_size_list {
+        //     if let std::collections::hash_map::Entry::Vacant(e) =
+        //         self.variable_name_to_col_idx_dict.entry(key.to_string())
+        //     {
+        //         e.insert(self.total_variable_dimension);
+        //         self.total_variable_dimension += variable_dimesion;
+        //     }
+        // }
         self.total_residual_dimension += dim_residual;
     }
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
@@ -100,20 +118,20 @@ impl Problem {
     pub fn remove_variable_bounds(&mut self, var_to_unbound: &str) {
         self.variable_bounds.remove(var_to_unbound);
     }
-    pub fn combine_variables(
-        &self,
-        variable_key_value_map: &HashMap<String, na::DVector<f64>>,
-    ) -> na::DVector<f64> {
-        let mut combined_variables = na::DVector::<f64>::zeros(self.total_variable_dimension);
-        for (k, v) in variable_key_value_map {
-            if let Some(col_idx) = self.variable_name_to_col_idx_dict.get(k) {
-                combined_variables
-                    .rows_mut(*col_idx, v.shape().0)
-                    .copy_from(v);
-            };
-        }
-        combined_variables
-    }
+    // pub fn combine_variables(
+    //     &self,
+    //     variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+    // ) -> na::DVector<f64> {
+    //     let mut combined_variables = na::DVector::<f64>::zeros(self.total_variable_dimension);
+    //     for (k, v) in variable_key_value_map {
+    //         if let Some(col_idx) = self.variable_name_to_col_idx_dict.get(k) {
+    //             combined_variables
+    //                 .rows_mut(*col_idx, v.shape().0)
+    //                 .copy_from(v);
+    //         };
+    //     }
+    //     combined_variables
+    // }
 
     pub fn compute_residuals(
         &self,
@@ -141,49 +159,53 @@ impl Problem {
         total_residual.view_range(.., ..).into_faer().to_owned()
     }
 
-    pub fn compute_residual_and_jacobian(
-        &self,
-        variable_key_value_map: &HashMap<String, na::DVector<f64>>,
-    ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
-        // multi
-        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
-            self.total_residual_dimension,
-        )));
-        let jacobian_list = Arc::new(Mutex::new(Vec::<JacobianValue>::new()));
+    // pub fn compute_residual_and_jacobian(
+    //     &self,
+    //     variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+    // ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
+    //     let variable_name_to_col_idx_dict = self.get_variable_name_to_col_idx_dict(parameter_blocks);
+    //     // multi
+    //     let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
+    //         self.total_residual_dimension,
+    //     )));
+    //     let jacobian_list = Arc::new(Mutex::new(Vec::<JacobianValue>::new()));
 
-        self.residual_blocks
-            .par_iter()
-            .for_each(|(_, residual_block)| {
-                self.compute_residual_and_jacobian_impl(
-                    residual_block,
-                    variable_key_value_map,
-                    &total_residual,
-                    &jacobian_list,
-                )
-            });
+    //     self.residual_blocks
+    //         .par_iter()
+    //         .for_each(|(_, residual_block)| {
+    //             self.compute_residual_and_jacobian_impl(
+    //                 residual_block,
+    //                 variable_key_value_map,
+    //                 &variable_name_to_col_idx_dict,
+    //                 &total_residual,
+    //                 &jacobian_list,
+    //             )
+    //         });
 
-        let total_residual = Arc::try_unwrap(total_residual)
-            .unwrap()
-            .into_inner()
-            .unwrap();
-        let jacobian_list = Arc::try_unwrap(jacobian_list)
-            .unwrap()
-            .into_inner()
-            .unwrap();
-        // end
+    //     let total_residual = Arc::try_unwrap(total_residual)
+    //         .unwrap()
+    //         .into_inner()
+    //         .unwrap();
+    //     let jacobian_list = Arc::try_unwrap(jacobian_list)
+    //         .unwrap()
+    //         .into_inner()
+    //         .unwrap();
+    //     // end
 
-        let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
-        let jacobian_faer = SparseColMat::try_new_from_triplets(
-            self.total_residual_dimension,
-            self.total_variable_dimension,
-            &jacobian_list,
-        )
-        .unwrap();
-        (residual_faer, jacobian_faer)
-    }
+    //     let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
+    //     let jacobian_faer = SparseColMat::try_new_from_triplets(
+    //         self.total_residual_dimension,
+    //         self.total_variable_dimension,
+    //         &jacobian_list,
+    //     )
+    //     .unwrap();
+    //     (residual_faer, jacobian_faer)
+    // }
     pub fn compute_residual_and_jacobian2(
         &self,
         parameter_blocks: &HashMap<String, ParameterBlock>,
+        variable_name_to_col_idx_dict: &HashMap<String, usize>,
+        total_variable_dimension: usize,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         // multi
         let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
@@ -197,6 +219,7 @@ impl Problem {
                 self.compute_residual_and_jacobian_impl2(
                     residual_block,
                     parameter_blocks,
+                    &variable_name_to_col_idx_dict,
                     &total_residual,
                     &jacobian_list,
                 )
@@ -215,7 +238,7 @@ impl Problem {
         let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
         let jacobian_faer = SparseColMat::try_new_from_triplets(
             self.total_residual_dimension,
-            self.total_variable_dimension,
+            total_variable_dimension,
             &jacobian_list,
         )
         .unwrap();
@@ -252,6 +275,7 @@ impl Problem {
         &self,
         residual_block: &crate::ResidualBlock,
         variable_key_value_map: &HashMap<String, na::DVector<f64>>,
+        variable_name_to_col_idx_dict: &HashMap<String, usize>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
         jacobian_list: &Arc<Mutex<Vec<JacobianValue>>>,
     ) {
@@ -278,7 +302,7 @@ impl Problem {
         }
 
         for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
-            if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(var_key) {
+            if let Some(variable_global_idx) = variable_name_to_col_idx_dict.get(var_key) {
                 let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
                 let mut local_jacobian_list = Vec::new();
@@ -299,6 +323,7 @@ impl Problem {
         &self,
         residual_block: &crate::ResidualBlock,
         parameter_blocks: &HashMap<String, ParameterBlock>,
+        variable_name_to_col_idx_dict: &HashMap<String, usize>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
         jacobian_list: &Arc<Mutex<Vec<JacobianValue>>>,
     ) {
@@ -326,7 +351,7 @@ impl Problem {
         }
 
         for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
-            if let Some(variable_global_idx) = self.variable_name_to_col_idx_dict.get(var_key) {
+            if let Some(variable_global_idx) = variable_name_to_col_idx_dict.get(var_key) {
                 let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
                 let mut local_jacobian_list = Vec::new();

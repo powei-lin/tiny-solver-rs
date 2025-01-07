@@ -6,32 +6,7 @@ use std::{
 use nalgebra as na;
 use num_dual::DualDVec64;
 
-pub trait AutoDiffManifold<T: na::RealField> {
-    fn plus(&self, x: na::DVectorView<T>, delta: na::DVectorView<T>) -> na::DVector<T>;
-    // fn minus
-}
-
-pub trait Manifold: AutoDiffManifold<f64> + AutoDiffManifold<num_dual::DualDVec64> {
-    fn tangent_size(&self) -> NonZero<usize>;
-    fn plus_f64(&self, x: na::DVectorView<f64>, delta: na::DVectorView<f64>) {
-        self.plus(x, delta);
-    }
-    fn plus_dual(&self, x: na::DVectorView<DualDVec64>, delta: na::DVectorView<DualDVec64>) {
-        self.plus(x, delta);
-    }
-}
-// impl Manifold where Self: AutoDiffManifold<f64> + AutoDiffManifold<num_dual::DualDVec64>{}
-// struct Q{}
-// impl <T: na::RealField> AutoDiffManifold<T> for Q{
-//     fn plus(&self, x: &nalgebra::DVector<T>) {
-
-//     }
-// }
-// impl Manifold for Q {
-//     fn tangent_size(&self) -> NonZero<usize> {
-//         NonZero::new(6).unwrap()
-//     }
-// }
+use crate::manifold::Manifold;
 
 pub struct ParameterBlock {
     pub params: na::DVector<f64>,
@@ -49,6 +24,9 @@ impl ParameterBlock {
             manifold: None,
         }
     }
+    pub fn set_manifold(&mut self, manifold: Box<dyn Manifold + Sync>) {
+        self.manifold = Some(manifold);
+    }
     pub fn ambient_size(&self) -> usize {
         self.params.shape().0
     }
@@ -59,15 +37,43 @@ impl ParameterBlock {
             self.ambient_size()
         }
     }
-    pub fn plus(&mut self, dx: na::DVectorView<f64>) {
+    pub fn plus_f64(&self, dx: na::DVectorView<f64>) -> na::DVector<f64> {
         let mut new_param = na::DVector::zeros(self.ambient_size());
         if let Some(m) = &self.manifold {
-            // m.plus(x, delta)
-            panic!("Not implemented yet");
+            new_param = m.plus_f64(self.params.as_view(), dx);
         } else {
             self.params.add_to(&dx, &mut new_param);
         }
-
+        new_param
+    }
+    pub fn plus_dual(&self, dx: na::DVectorView<DualDVec64>) -> na::DVector<DualDVec64> {
+        let mut new_param = na::DVector::zeros(self.ambient_size());
+        if let Some(m) = &self.manifold {
+            new_param = m.plus_dual(self.params.clone().cast::<DualDVec64>().as_view(), dx);
+        } else {
+            self.params.clone().cast().add_to(&dx, &mut new_param);
+        }
+        new_param
+    }
+    pub fn y_minus_f64(&self, y: na::DVectorView<f64>) -> na::DVector<f64> {
+        let mut delta_x = na::DVector::zeros(self.tangent_size());
+        if let Some(m) = &self.manifold {
+            delta_x = m.minus_f64(y, self.params.as_view());
+        } else {
+            y.sub_to(&self.params, &mut delta_x);
+        }
+        delta_x
+    }
+    pub fn y_minus_dual(&self, y: na::DVectorView<DualDVec64>) -> na::DVector<DualDVec64> {
+        let mut delta_x = na::DVector::zeros(self.tangent_size());
+        if let Some(m) = &self.manifold {
+            delta_x = m.minus_dual(y, self.params.clone().cast().as_view());
+        } else {
+            y.sub_to(&self.params.clone().cast(), &mut delta_x);
+        }
+        delta_x
+    }
+    pub fn update_params(&mut self, mut new_param: na::DVector<f64>) {
         // bound
         for (&idx, &(lower, upper)) in &self.variable_bounds {
             new_param[idx] = new_param[idx].max(lower).min(upper);
