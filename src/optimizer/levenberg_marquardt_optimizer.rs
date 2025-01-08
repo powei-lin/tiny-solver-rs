@@ -61,7 +61,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
-        let mut step_succesful = false;
 
         // On the first iteration, we'll generate a diagonal matrix of the jacobian.
         // Its shape will be (total_variable_dimension, total_variable_dimension).
@@ -114,7 +113,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 log::debug!("solve ax=b failed, current error is nan");
                 return None;
             }
-            if i > 0 && step_succesful {
+            if i > 0 {
                 if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                     trace!("absolute error decrease low");
                     break;
@@ -144,8 +143,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             // Regularize the diagonal of jtj between the min and max diagonal values.
             let mut jtj_regularized = jtj.clone();
             for i in 0..total_variable_dimension {
-                jtj_regularized[(i, i)] =
-                    (jtj[(i, i)].max(self.min_diagonal)).min(self.max_diagonal);
+                jtj_regularized[(i, i)] +=
+                    u * (jtj[(i, i)].max(self.min_diagonal)).min(self.max_diagonal);
             }
 
             let start = Instant::now();
@@ -184,12 +183,10 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     // Increase the trust region by reducing u
                     let tmp = 2.0 * rho - 1.0;
                     u *= (1.0_f64 / 3.0).max(1.0 - tmp * tmp * tmp);
-                    step_succesful = true;
                 } else {
                     // If there's too much divergence, reduce the trust region and try again with the same parameters.
                     u *= 2.0;
                     println!("u {}", u);
-                    step_succesful = false;
                 }
             } else {
                 log::debug!("solve ax=b failed");
