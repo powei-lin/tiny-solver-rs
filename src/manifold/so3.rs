@@ -66,16 +66,30 @@ impl<T: na::RealField> SO3<T> {
     }
 
     pub fn log(&self) -> na::DVector<T> {
-        let xi = na::dvector![self.qx.clone(), self.qy.clone(), self.qz.clone()];
-        // Abs value in case we had a negative quaternion
-        let w = self.qw.clone().abs();
+        const EPS: f64 = 1e-6;
+        let ivec = na::dvector![self.qx.clone(), self.qy.clone(), self.qz.clone()];
 
-        let norm_v = xi.norm();
-        if norm_v < T::from_f64(1e-3).unwrap() {
-            xi * T::from_f64(2.0).unwrap()
-        } else {
-            xi * norm_v.clone().atan2(w) * T::from_f64(2.0).unwrap() / norm_v
-        }
+        let squared_n = ivec.norm_squared();
+        let w = self.qw.clone();
+
+        let near_zero = squared_n.le(&T::from_f64(EPS * EPS).unwrap());
+
+        let w_sq = w.clone() * w.clone();
+        let t0 = T::from_f64(2.0).unwrap() / w.clone()
+            - T::from_f64(2.0 / 3.0).unwrap() * squared_n.clone() / (w_sq * w.clone());
+
+        let n = squared_n.sqrt();
+
+        let sign = T::from_f64(-1.0)
+            .unwrap()
+            .select(w.le(&T::zero()), T::one());
+        let atan_nbyw = sign.clone() * n.clone().atan2(sign * w);
+
+        let t = T::from_f64(2.0).unwrap() * atan_nbyw / n;
+
+        let two_atan_nbyd_by_n = t0.select(near_zero, t);
+
+        ivec * two_atan_nbyd_by_n
     }
 
     pub fn hat(xi: na::VectorView3<T>) -> na::Matrix3<T> {
@@ -137,7 +151,7 @@ impl<T: na::RealField> SO3<T> {
         let qz = w0.clone() * z1.clone() + x0.clone() * y1.clone() - y0.clone() * x1.clone()
             + z0.clone() * w1.clone();
         let qw = w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1;
-
+        // println!("q {}", self.to_vec());
         SO3 { qx, qy, qz, qw }
     }
 }
