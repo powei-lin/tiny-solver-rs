@@ -9,6 +9,10 @@ Inspired by [ceres-solver](https://github.com/ceres-solver/ceres-solver), [tiny-
 
 This is a general optimizer written in Rust, including bindings for Python. If you're familiar with ceres-solver or factor-graph optimizers, you'll find it very easy to use.
 
+#### Other great rust optimizers
+* [factrs](https://github.com/rpl-cmu/factrs)
+* [sophus-rs](https://github.com/sophus-vision/sophus-rs)
+
 ## Installation
 ### rust
 ```sh
