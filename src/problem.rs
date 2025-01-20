@@ -233,8 +233,7 @@ impl Problem {
                     residual_block,
                     parameter_blocks,
                     variable_name_to_col_idx_dict,
-                    &total_residual,
-                    &total_variable_dimension,
+                    &total_residual
                 )
             })
             .flatten()
@@ -293,7 +292,6 @@ impl Problem {
         parameter_blocks: &HashMap<String, ParameterBlock>,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
         total_residual: &Arc<Mutex<na::DVector<f64>>>,
-        total_variable_dimension: &usize,
     ) -> Vec<JacobianValue> {
         let mut params = Vec::new();
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
@@ -316,8 +314,7 @@ impl Problem {
                 .copy_from(&res);
         }
 
-        let mut local_jacobian_list =
-            Vec::with_capacity(residual_block.dim_residual * total_variable_dimension);
+        let mut local_jacobian_list = Vec::new();
 
         for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
             if let Some(_) = variable_name_to_col_idx_dict.get(var_key) {
