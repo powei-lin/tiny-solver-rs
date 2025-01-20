@@ -196,14 +196,16 @@ impl Problem {
         let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
             self.total_residual_dimension,
         )));
-        self.residual_blocks.iter().for_each(|(_, residual_block)| {
-            self.compute_residual_impl(
-                residual_block,
-                parameter_blocks,
-                &total_residual,
-                with_loss_fn,
-            )
-        });
+        self.residual_blocks
+            .par_iter()
+            .for_each(|(_, residual_block)| {
+                self.compute_residual_impl(
+                    residual_block,
+                    parameter_blocks,
+                    &total_residual,
+                    with_loss_fn,
+                )
+            });
         let total_residual = Arc::try_unwrap(total_residual)
             .unwrap()
             .into_inner()
