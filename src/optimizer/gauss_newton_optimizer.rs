@@ -43,16 +43,29 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
 
+        let symbolic_structure = problem.build_symbolic_structure(
+            &parameter_blocks,
+            total_variable_dimension,
+            &variable_name_to_col_idx_dict,
+        );
+
         let mut last_err: f64 = 1.0;
 
         for i in 0..opt_option.max_iteration {
+            let start = Instant::now();
             let (residuals, jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
                 total_variable_dimension,
+                &symbolic_structure,
             );
             let current_error = residuals.norm_l2();
-            trace!("iter:{} total err:{}", i, current_error);
+            trace!(
+                "iter:{}, total err:{}, duration: {:?}",
+                i,
+                current_error,
+                start.elapsed()
+            );
 
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");

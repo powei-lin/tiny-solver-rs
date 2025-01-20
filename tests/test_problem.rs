@@ -120,11 +120,17 @@ mod tests {
         let variable_name_to_col_idx_dict =
             problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
         let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
+        let symbolic_structure = problem.build_symbolic_structure(
+            &parameter_blocks,
+            total_variable_dimension,
+            &variable_name_to_col_idx_dict,
+        );
 
         let (residuals, jac) = problem.compute_residual_and_jacobian(
             &parameter_blocks,
             &variable_name_to_col_idx_dict,
             total_variable_dimension,
+            &symbolic_structure,
         );
 
         assert_eq!(residuals.nrows(), 3);
