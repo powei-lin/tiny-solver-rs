@@ -129,7 +129,6 @@ mod tests {
         let (residuals, jac) = problem.compute_residual_and_jacobian(
             &parameter_blocks,
             &variable_name_to_col_idx_dict,
-            total_variable_dimension,
             &symbolic_structure,
         );
 

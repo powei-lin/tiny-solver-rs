@@ -63,10 +63,7 @@ pub trait Optimizer {
         problem: &problem::Problem,
         params: &HashMap<String, ParameterBlock>,
     ) -> f64 {
-        let start = std::time::Instant::now();
-        let error = problem.compute_residuals(params, true).squared_norm_l2();
-        log::trace!("Computing error: {:?}", start.elapsed());
-        error
+        problem.compute_residuals(params, true).squared_norm_l2()
     }
 }
 

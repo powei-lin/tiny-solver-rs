@@ -218,7 +218,6 @@ impl Problem {
         &self,
         parameter_blocks: &HashMap<String, ParameterBlock>,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
-        total_variable_dimension: usize,
         symbolic_structure: &SymbolicStructure,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
         // multi
@@ -226,7 +225,6 @@ impl Problem {
             self.total_residual_dimension,
         )));
 
-        let mut start = std::time::Instant::now();
         let jacobian_lists: Vec<JacobianValue> = self
             .residual_blocks
             .par_iter()
@@ -241,24 +239,18 @@ impl Problem {
             .flatten()
             .collect();
 
-        log::debug!("compute_residual_and_jacobian_impl: {:?}, total_variable_dim: {:?}, total_residual: {:?}", start.elapsed(), total_variable_dimension, self.total_residual_dimension);
-        start = std::time::Instant::now();
         let total_residual = Arc::try_unwrap(total_residual)
             .unwrap()
             .into_inner()
             .unwrap();
 
         let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
-        log::debug!("residual_faer: {:?}", start.elapsed());
-        start = std::time::Instant::now();
         let jacobian_faer = SparseColMat::new_from_order_and_values(
             symbolic_structure.pattern.clone(),
             &symbolic_structure.order,
             jacobian_lists.as_slice(),
         )
         .unwrap();
-        log::debug!("jacobian_faer: {:?}", start.elapsed());
-        //log::debug!("rest of the function: {:?}", start.elapsed());
         (residual_faer, jacobian_faer)
     }
 
