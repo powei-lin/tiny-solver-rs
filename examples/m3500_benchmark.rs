@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use plotters::prelude::*;
 
-use tiny_solver::{helper::read_g2o, optimizer::Optimizer, GaussNewtonOptimizer};
+use tiny_solver::{helper::read_g2o, optimizer::Optimizer, GaussNewtonOptimizer, LevenbergMarquardtOptimizer};
 
 fn main() {
     // init logger
@@ -32,7 +32,7 @@ fn main() {
                 .map(|(x, y)| Circle::new((*x, *y), 2, GREEN.filled())),
         )
         .unwrap();
-    let gn = GaussNewtonOptimizer::new();
+    let gn = LevenbergMarquardtOptimizer::default();
     let start = Instant::now();
     let result = gn.optimize(&problem, &init_values, None);
     let duration = start.elapsed();
