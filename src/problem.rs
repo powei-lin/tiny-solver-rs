@@ -317,7 +317,7 @@ impl Problem {
         let mut local_jacobian_list = Vec::new();
 
         for (i, var_key) in residual_block.variable_key_list.iter().enumerate() {
-            if let Some(_) = variable_name_to_col_idx_dict.get(var_key) {
+            if variable_name_to_col_idx_dict.contains_key(var_key) {
                 let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
                 for row_idx in 0..jac.shape().0 {
@@ -325,6 +325,8 @@ impl Problem {
                         local_jacobian_list.push(variable_jac[(row_idx, col_idx)]);
                     }
                 }
+            } else {
+                panic!("Missing key {} in variable-to-column-index mapping", var_key);
             }
         }
 

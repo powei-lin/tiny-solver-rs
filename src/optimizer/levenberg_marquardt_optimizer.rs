@@ -193,7 +193,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 } else {
                     // If there's too much divergence, reduce the trust region and try again with the same parameters.
                     u *= 2.0;
-                    println!("u {}", u);
+                    trace!("u {}", u);
                 }
             } else {
                 log::debug!("solve ax=b failed");
