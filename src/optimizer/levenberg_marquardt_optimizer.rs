@@ -67,7 +67,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         // With LM, rather than solving A * dx = b for dx, we solve for (A + lambda * diag(A)) dx = b.
         let mut jacobi_scaling_diagonal: Option<faer::sparse::SparseColMat<usize, f64>> = None;
 
-        let s = problem.build_symbolic_structure(
+        let symbolic_structure = problem.build_symbolic_structure(
             &parameter_blocks,
             total_variable_dimension,
             &variable_name_to_col_idx_dict,
@@ -76,13 +76,15 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         // Damping parameter (a.k.a lambda / Marquardt parameter)
         let mut u = 1.0 / self.initial_trust_region_radius;
 
-        let mut last_err: f64 = 1.0;
+        let mut last_err;
+        let mut current_error = self.compute_error(&problem, &parameter_blocks);
         for i in 0..opt_option.max_iteration {
+            last_err = current_error;
+
             let (residuals, mut jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
-                total_variable_dimension,
-                &s,
+                &symbolic_structure,
             );
 
             if i == 0 {
@@ -109,29 +111,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     .unwrap(),
                 );
             }
-
-            let current_error = residuals.norm_l2();
-            trace!("iter:{} total err:{}", i, current_error);
-
-            if current_error < opt_option.min_error_threshold {
-                trace!("error too low");
-                break;
-            } else if current_error.is_nan() {
-                log::debug!("solve ax=b failed, current error is nan");
-                return None;
-            }
-            if i > 0 {
-                if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
-                    trace!("absolute error decrease low");
-                    break;
-                } else if (last_err - current_error).abs() / last_err
-                    < opt_option.min_rel_error_decrease_threshold
-                {
-                    trace!("relative error decrease low");
-                    break;
-                }
-            }
-            last_err = current_error;
 
             // Scale the current jacobian by the diagonal matrix
             jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
@@ -198,6 +177,27 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             } else {
                 log::debug!("solve ax=b failed");
                 return None;
+            }
+
+            current_error = self.compute_error(problem, &parameter_blocks);
+            trace!("iter:{} total err:{}", i, current_error);
+
+            if current_error < opt_option.min_error_threshold {
+                trace!("error too low");
+                break;
+            } else if current_error.is_nan() {
+                log::debug!("solve ax=b failed, current error is nan");
+                return None;
+            }
+
+            if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
+                trace!("absolute error decrease low");
+                break;
+            } else if (last_err - current_error).abs() / last_err
+                < opt_option.min_rel_error_decrease_threshold
+            {
+                trace!("relative error decrease low");
+                break;
             }
         }
         let params = parameter_blocks

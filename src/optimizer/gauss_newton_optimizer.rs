@@ -49,48 +49,24 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             &variable_name_to_col_idx_dict,
         );
 
-        let mut last_err: f64 = 1.0;
+        let mut last_err;
+        let mut current_error = self.compute_error(&problem, &parameter_blocks);
 
         for i in 0..opt_option.max_iteration {
-            let start = Instant::now();
+            last_err = current_error;
+            let mut start = Instant::now();
+
             let (residuals, jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
-                total_variable_dimension,
                 &symbolic_structure,
             );
-            let current_error = residuals.norm_l2();
-            trace!(
-                "iter:{}, total err:{}, duration: {:?}",
-                i,
-                current_error,
-                start.elapsed()
-            );
+            let residual_and_jacobian_duration = start.elapsed();
 
-            if current_error < opt_option.min_error_threshold {
-                trace!("error too low");
-                break;
-            } else if current_error.is_nan() {
-                log::debug!("solve ax=b failed, current error is nan");
-                return None;
-            }
-            if i > 0 {
-                if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
-                    trace!("absolute error decreas low");
-                    break;
-                } else if (last_err - current_error).abs() / last_err
-                    < opt_option.min_rel_error_decrease_threshold
-                {
-                    trace!("reletive error decrease low");
-                    break;
-                }
-            }
-            last_err = current_error;
-
-            let start = Instant::now();
+            start = Instant::now();
+            let solving_duration;
             if let Some(dx) = linear_solver.solve(&residuals, &jac) {
-                let duration = start.elapsed();
-                trace!("Time elapsed in solve Ax=b is: {:?}", duration);
+                solving_duration = start.elapsed();
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
                 self.apply_dx2(
                     &dx_na,
@@ -100,6 +76,33 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             } else {
                 log::debug!("solve ax=b failed");
                 return None;
+            }
+
+            current_error = self.compute_error(&problem, &parameter_blocks);
+            trace!(
+                "iter:{}, total err:{}, residual + jacobian duration: {:?}, solving duration: {:?}",
+                i,
+                current_error,
+                residual_and_jacobian_duration,
+                solving_duration
+            );
+
+            if current_error < opt_option.min_error_threshold {
+                trace!("error too low");
+                break;
+            } else if current_error.is_nan() {
+                log::debug!("solve ax=b failed, current error is nan");
+                return None;
+            }
+
+            if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
+                trace!("absolute error decrease low");
+                break;
+            } else if (last_err - current_error).abs() / last_err
+                < opt_option.min_rel_error_decrease_threshold
+            {
+                trace!("relative error decrease low");
+                break;
             }
         }
         let params = parameter_blocks

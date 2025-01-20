@@ -58,6 +58,13 @@ pub trait Optimizer {
         // for (key, param) in params.par_iter_mut() {
         // }
     }
+    fn compute_error(
+        &self,
+        problem: &problem::Problem,
+        params: &HashMap<String, ParameterBlock>,
+    ) -> f64 {
+        problem.compute_residuals(params, true).squared_norm_l2()
+    }
 }
 
 #[derive(PartialEq, Debug)]
