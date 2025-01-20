@@ -326,7 +326,10 @@ impl Problem {
                     }
                 }
             } else {
-                panic!("Missing key {} in variable-to-column-index mapping", var_key);
+                panic!(
+                    "Missing key {} in variable-to-column-index mapping",
+                    var_key
+                );
             }
         }
 
