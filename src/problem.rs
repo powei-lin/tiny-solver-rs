@@ -325,14 +325,11 @@ impl Problem {
                         local_jacobian_list.push(variable_jac[(row_idx, col_idx)]);
                     }
                 }
-<<<<<<< HEAD
-=======
             } else {
                 panic!(
                     "Missing key {} in variable-to-column-index mapping",
                     var_key
                 );
->>>>>>> upstream/master
             }
         }
 
