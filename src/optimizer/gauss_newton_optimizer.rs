@@ -49,43 +49,19 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             &variable_name_to_col_idx_dict,
         );
 
-        let mut last_err: f64 = 1.0;
+        let mut last_err;
+        let mut current_error = problem.compute_residuals(&parameter_blocks, true).squared_norm_l2();
 
         for i in 0..opt_option.max_iteration {
+            last_err = current_error;
             let start = Instant::now();
+        
             let (residuals, jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
                 total_variable_dimension,
                 &symbolic_structure,
             );
-            let current_error = residuals.norm_l2();
-            trace!(
-                "iter:{}, total err:{}, duration: {:?}",
-                i,
-                current_error,
-                start.elapsed()
-            );
-
-            if current_error < opt_option.min_error_threshold {
-                trace!("error too low");
-                break;
-            } else if current_error.is_nan() {
-                log::debug!("solve ax=b failed, current error is nan");
-                return None;
-            }
-            if i > 0 {
-                if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
-                    trace!("absolute error decreas low");
-                    break;
-                } else if (last_err - current_error).abs() / last_err
-                    < opt_option.min_rel_error_decrease_threshold
-                {
-                    trace!("reletive error decrease low");
-                    break;
-                }
-            }
-            last_err = current_error;
 
             let start = Instant::now();
             if let Some(dx) = linear_solver.solve(&residuals, &jac) {
@@ -100,6 +76,33 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             } else {
                 log::debug!("solve ax=b failed");
                 return None;
+            }
+            
+            current_error = problem.compute_residuals(&parameter_blocks, true).squared_norm_l2();
+            trace!(
+                "iter:{}, total err:{}, duration: {:?}",
+                i,
+                current_error,
+                start.elapsed()
+            );
+
+            if current_error < opt_option.min_error_threshold {
+                trace!("error too low");
+                break;
+            } else if current_error.is_nan() {
+                log::debug!("solve ax=b failed, current error is nan");
+                return None;
+            }
+            {
+                if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
+                    trace!("absolute error decreas low");
+                    break;
+                } else if (last_err - current_error).abs() / last_err
+                    < opt_option.min_rel_error_decrease_threshold
+                {
+                    trace!("reletive error decrease low");
+                    break;
+                }
             }
         }
         let params = parameter_blocks
