@@ -189,7 +189,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 log::debug!("solve ax=b failed, current error is nan");
                 return None;
             }
-      
+
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
                 break;
@@ -199,7 +199,6 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 trace!("relative error decrease low");
                 break;
             }
-            
         }
         let params = parameter_blocks
             .iter()
