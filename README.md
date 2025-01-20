@@ -1,6 +1,4 @@
 # tiny-solver-rs
-> Warning! This project is still under development.
-
 [![crate](https://img.shields.io/crates/v/tiny-solver.svg)](https://crates.io/crates/tiny-solver)
 [![PyPI - Version](https://img.shields.io/pypi/v/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
@@ -10,7 +8,7 @@ Inspired by [ceres-solver](https://github.com/ceres-solver/ceres-solver), [tiny-
 This is a general optimizer written in Rust, including bindings for Python. If you're familiar with ceres-solver or factor-graph optimizers, you'll find it very easy to use.
 
 #### Other great rust optimizers
-* [factrs](https://github.com/rpl-cmu/factrs)
+* [fact.rs](https://github.com/rpl-cmu/fact.rs)
 * [sophus-rs](https://github.com/sophus-vision/sophus-rs)
 
 ## Installation
@@ -33,10 +31,10 @@ cargo add tiny-solver
 - [ ] information matrix
 
 ## Benchmark
+On m3 macbook air
 | dataset | tiny-solver | gtsam   | minisam  |
 |---------|-------------|---------|----------|
-| m3500   | 161.1ms     | 130.7ms | 123.6 ms |
-|         |             |         |          |
+| m3500   | 128.3ms     | 130.7ms | 123.6 ms |
 
 It's not extremely optimized, but it's easy to install and use.
 
