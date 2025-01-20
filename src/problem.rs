@@ -233,7 +233,7 @@ impl Problem {
                     residual_block,
                     parameter_blocks,
                     variable_name_to_col_idx_dict,
-                    &total_residual
+                    &total_residual,
                 )
             })
             .flatten()
