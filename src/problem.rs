@@ -126,19 +126,19 @@ impl Problem {
         self.residual_id_count += 1;
 
         self.total_residual_dimension += dim_residual;
-        
+
         block_id
     }
     pub fn remove_residual_block(
         &mut self,
-        block_id: ResidualBlockId
+        block_id: ResidualBlockId,
     ) -> Option<residual_block::ResidualBlock> {
-            if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
-                self.total_residual_dimension -= residual_block.dim_residual;
-                Some(residual_block)
-            } else {
-                None
-            }
+        if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
+            self.total_residual_dimension -= residual_block.dim_residual;
+            Some(residual_block)
+        } else {
+            None
+        }
     }
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
         if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
