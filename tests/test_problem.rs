@@ -16,7 +16,7 @@ mod tests {
     #[test]
     fn add_residual_block() {
         let mut problem = tiny_solver::Problem::new();
-        problem.add_residual_block(
+        let block_id1 = problem.add_residual_block(
             1,
             &["x"],
             Box::new(tiny_solver::factors::PriorFactor {
@@ -26,6 +26,41 @@ mod tests {
         );
 
         assert_eq!(problem.total_residual_dimension, 1);
+
+        let block_id2 = problem.add_residual_block(
+            1,
+            &["y"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![3.0],
+            }),
+            None,
+        );
+
+        assert!(block_id1 != block_id2);
+        assert_eq!(problem.total_residual_dimension, 2);
+    }
+
+    #[test]
+    fn remove_residual_block() {
+        let mut problem = tiny_solver::Problem::new();
+        let block_id = problem.add_residual_block(
+            1,
+            &["x"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![3.0],
+            }),
+            None,
+        );
+
+        assert_eq!(problem.total_residual_dimension, 1);
+
+        let mut block = problem.remove_residual_block(block_id);
+        assert!(block.is_some());
+        assert_eq!(problem.total_residual_dimension, 0);
+
+        block = problem.remove_residual_block(block_id);
+        assert!(block.is_none());
+        assert_eq!(problem.total_residual_dimension, 0);
     }
 
     #[test]

@@ -10,10 +10,12 @@ use crate::manifold::Manifold;
 use crate::parameter_block::ParameterBlock;
 use crate::{factors, loss_functions, residual_block};
 
+type ResidualBlockId = usize;
+
 pub struct Problem {
     pub total_residual_dimension: usize,
     residual_id_count: usize,
-    residual_blocks: HashMap<usize, residual_block::ResidualBlock>,
+    residual_blocks: HashMap<ResidualBlockId, residual_block::ResidualBlock>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
     pub variable_manifold: HashMap<String, Arc<dyn Manifold + Sync + Send>>,
@@ -108,7 +110,7 @@ impl Problem {
         variable_key_size_list: &[&str],
         factor: Box<dyn factors::FactorImpl + Send>,
         loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
-    ) {
+    ) -> ResidualBlockId {
         self.residual_blocks.insert(
             self.residual_id_count,
             residual_block::ResidualBlock::new(
@@ -120,9 +122,23 @@ impl Problem {
                 loss_func,
             ),
         );
+        let block_id = self.residual_id_count;
         self.residual_id_count += 1;
 
         self.total_residual_dimension += dim_residual;
+        
+        block_id
+    }
+    pub fn remove_residual_block(
+        &mut self,
+        block_id: ResidualBlockId
+    ) -> Option<residual_block::ResidualBlock> {
+            if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
+                self.total_residual_dimension -= residual_block.dim_residual;
+                Some(residual_block)
+            } else {
+                None
+            }
     }
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
         if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
