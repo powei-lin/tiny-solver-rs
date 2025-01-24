@@ -16,8 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Update
+      run: sudo apt update -y
     - name: Dependencies
-      run: sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
+      run: sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev -y
     - name: Format
       run: cargo fmt --check --verbose
     - name: Linting
