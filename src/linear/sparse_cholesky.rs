@@ -1,16 +1,15 @@
 use std::fmt::Debug;
 use std::ops::Mul;
 
-use faer::prelude::SpSolver;
+use faer::linalg::solvers::Solve;
 use faer::sparse::linalg::solvers;
 
 use super::sparse::SparseLinearSolver;
 
 // #[pyclass]
-
 #[derive(Debug, Clone)]
 pub struct SparseCholeskySolver {
-    symbolic_pattern: Option<solvers::SymbolicCholesky<usize>>,
+    symbolic_pattern: Option<solvers::SymbolicLlt<usize>>,
 }
 
 impl SparseCholeskySolver {
@@ -49,14 +48,13 @@ impl SparseLinearSolver for SparseCholeskySolver {
     ) -> Option<faer::Mat<f64>> {
         // initialize the pattern
         if self.symbolic_pattern.is_none() {
-            self.symbolic_pattern = Some(
-                solvers::SymbolicCholesky::try_new(jtj.symbolic(), faer::Side::Lower).unwrap(),
-            );
+            self.symbolic_pattern =
+                Some(solvers::SymbolicLlt::try_new(jtj.symbolic(), faer::Side::Lower).unwrap());
         }
 
         let sym = self.symbolic_pattern.as_ref().unwrap();
         if let Ok(cholesky) =
-            solvers::Cholesky::try_new_with_symbolic(sym.clone(), jtj.as_ref(), faer::Side::Lower)
+            solvers::Llt::try_new_with_symbolic(sym.clone(), jtj.as_ref(), faer::Side::Lower)
         {
             let dx = cholesky.solve(jtr);
 

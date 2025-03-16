@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use nalgebra as na;
-use tiny_solver::{self, Optimizer};
+use tiny_solver::{self, na, Optimizer};
 
 struct CustomFactor;
 // define your own residual function and the jacobian will be auto generated

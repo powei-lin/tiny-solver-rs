@@ -63,7 +63,10 @@ pub trait Optimizer {
         problem: &problem::Problem,
         params: &HashMap<String, ParameterBlock>,
     ) -> f64 {
-        problem.compute_residuals(params, true).squared_norm_l2()
+        problem
+            .compute_residuals(params, true)
+            .as_ref()
+            .squared_norm_l2()
     }
 }
 
