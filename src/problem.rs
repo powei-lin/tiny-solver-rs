@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use faer::sparse::{SparseColMat, SymbolicSparseColMat, ValuesOrder};
+use faer::sparse::{Argsort, Pair, SparseColMat, SymbolicSparseColMat};
 use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
@@ -28,7 +28,7 @@ impl Default for Problem {
 
 pub struct SymbolicStructure {
     pattern: SymbolicSparseColMat<usize>,
-    order: ValuesOrder<usize>,
+    order: Argsort<usize>,
 }
 
 type JacobianValue = f64;
@@ -51,7 +51,7 @@ impl Problem {
         total_variable_dimension: usize,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
     ) -> SymbolicStructure {
-        let mut indices = Vec::<(usize, usize)>::new();
+        let mut indices = Vec::<Pair<usize, usize>>::new();
 
         self.residual_blocks.iter().for_each(|(_, residual_block)| {
             let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
@@ -70,7 +70,7 @@ impl Problem {
                         for col_idx in 0..var_size {
                             let global_row_idx = residual_block.residual_row_start_idx + row_idx;
                             let global_col_idx = variable_global_idx + col_idx;
-                            indices.push((global_row_idx, global_col_idx));
+                            indices.push(Pair::new(global_row_idx, global_col_idx));
                         }
                     }
                 }
@@ -261,7 +261,7 @@ impl Problem {
             .unwrap();
 
         let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
-        let jacobian_faer = SparseColMat::new_from_order_and_values(
+        let jacobian_faer = SparseColMat::new_from_argsort(
             symbolic_structure.pattern.clone(),
             &symbolic_structure.order,
             jacobian_lists.as_slice(),

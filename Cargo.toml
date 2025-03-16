@@ -15,9 +15,9 @@ exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*", "tests/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-faer = "0.20.2"
-faer-ext = { version = "0.4.1", features = ["nalgebra"] }
-log = "0.4.21"
+faer = "0.21.5"
+faer-ext = { version = "0.5.0", features = ["nalgebra"] }
+log = "0.4.26"
 nalgebra = "0.33.2"
 num-dual = "0.11.0"
 num-traits = "0.2.19"

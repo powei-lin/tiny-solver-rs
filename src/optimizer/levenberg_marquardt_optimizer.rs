@@ -2,6 +2,7 @@ use log::trace;
 use std::ops::Mul;
 use std::{collections::HashMap, time::Instant};
 
+use faer::sparse::Triplet;
 use faer_ext::IntoNalgebra;
 
 use crate::common::OptimizerOptions;
@@ -77,7 +78,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut u = 1.0 / self.initial_trust_region_radius;
 
         let mut last_err;
-        let mut current_error = self.compute_error(&problem, &parameter_blocks);
+        let mut current_error = self.compute_error(problem, &parameter_blocks);
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
 
@@ -90,15 +91,10 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             if i == 0 {
                 // On the first iteration, generate the diagonal of the jacobian.
                 let cols = jac.shape().1;
-                let jacobi_scaling_vec: Vec<(usize, usize, f64)> = (0..cols)
+                let jacobi_scaling_vec: Vec<Triplet<usize, usize, f64>> = (0..cols)
                     .map(|c| {
-                        let v = jac
-                            .values_of_col(c)
-                            .iter()
-                            .map(|&i| i * i)
-                            .sum::<f64>()
-                            .sqrt();
-                        (c, c, 1.0 / (1.0 + v))
+                        let v = jac.val_of_col(c).iter().map(|&i| i * i).sum::<f64>().sqrt();
+                        Triplet::new(c, c, 1.0 / (1.0 + v))
                     })
                     .collect();
 
@@ -156,7 +152,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 // rho is the ratio between the actual reduction in error and the reduction
                 // in error if the problem were linear.
                 let actual_residual_change =
-                    residuals.squared_norm_l2() - new_residuals.squared_norm_l2();
+                    residuals.as_ref().squared_norm_l2() - new_residuals.as_ref().squared_norm_l2();
                 trace!("actual_residual_change {}", actual_residual_change);
                 let linear_residual_change: faer::Mat<f64> =
                     lm_step.transpose().mul(2.0 * &jtr - &jtj * &lm_step);

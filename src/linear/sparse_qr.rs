@@ -1,5 +1,6 @@
 use super::sparse::SparseLinearSolver;
-use faer::prelude::{SpSolver, SpSolverLstsq};
+use faer::linalg::solvers::SolveLstsqCore;
+// use faer::prelude::{SpSolver, SpSolverLstsq};
 use faer::sparse::linalg::solvers;
 
 #[derive(Debug, Clone)]
@@ -32,8 +33,9 @@ impl SparseLinearSolver for SparseQRSolver {
 
         let sym = self.symbolic_pattern.as_ref().unwrap();
         if let Ok(qr) = solvers::Qr::try_new_with_symbolic(sym.clone(), jacobians.as_ref()) {
-            let dx = qr.solve_lstsq(-residuals);
-            Some(dx)
+            let mut minus_residuals = -residuals;
+            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, minus_residuals.as_mut());
+            Some(minus_residuals)
         } else {
             None
         }
@@ -50,8 +52,9 @@ impl SparseLinearSolver for SparseQRSolver {
 
         let sym = self.symbolic_pattern.as_ref().unwrap();
         if let Ok(qr) = solvers::Qr::try_new_with_symbolic(sym.clone(), jtj.as_ref()) {
-            let dx = qr.solve(-jtr);
-            Some(dx)
+            let mut minus_jtr = -jtr;
+            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, minus_jtr.as_mut());
+            Some(minus_jtr)
         } else {
             None
         }
