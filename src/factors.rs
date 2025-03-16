@@ -1,4 +1,4 @@
-use nalgebra as na;
+pub use nalgebra as na;
 
 use crate::manifold::se3::SE3;
 
