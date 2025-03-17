@@ -99,6 +99,10 @@ fn main() {
     }
 }
 ```
+You can find other examples in 
+* https://github.com/powei-lin/camera-intrinsic-calibration-rs/blob/main/src/util.rs
+* https://github.com/powei-lin/b-spline/blob/main/src/so3bspline.rs
+
 Python (Currently not maintaining)
 ```py
 import numpy as np
