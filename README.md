@@ -1,7 +1,6 @@
 # tiny-solver-rs
 [![crate](https://img.shields.io/crates/v/tiny-solver.svg)](https://crates.io/crates/tiny-solver)
-[![PyPI - Version](https://img.shields.io/pypi/v/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tiny-solver.svg)](https://pypi.org/project/tiny-solver)
+[![crate downloads](https://img.shields.io/crates/d/tiny-solver)](https://crates.io/crates/tiny-solver)
 
 Inspired by [ceres-solver](https://github.com/ceres-solver/ceres-solver), [tiny-solver](https://github.com/keir/tinysolver), and [minisam](https://github.com/dongjing3309/minisam).
 
