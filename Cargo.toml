@@ -1,6 +1,6 @@
 [package]
 name = "tiny-solver"
-version = "0.17.0"
+version = "0.17.1"
 edition = "2021"
 authors = ["Powei Lin <poweilin1994@gmail.com>, Hossam R. <hrabbouh@gmail.com>"]
 readme = "README.md"
@@ -15,11 +15,11 @@ exclude = ["/.github/*", "*.ipynb", "./scripts/*", "examples/*", "tests/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-faer = "0.21.5"
-faer-ext = { version = "0.5.0", features = ["nalgebra"] }
-log = "0.4.26"
+faer = "0.22.4"
+faer-ext = { version = "0.6.0", features = ["nalgebra"] }
+log = "0.4.27"
 nalgebra = "0.33.2"
-num-dual = "0.11.0"
+num-dual = "0.11.1"
 num-traits = "0.2.19"
 numpy = { version = "0.23.0", features = ["nalgebra"], optional = true }
 pyo3 = { version = "0.23.3", features = ["abi3", "abi3-py38"], optional = true }
@@ -41,11 +41,11 @@ name = "parking-garage"
 python = ["num-dual/python", "numpy", "pyo3"]
 
 [dev-dependencies]
-env_logger = "0.11.7"
+env_logger = "0.11.8"
 itertools = "0.14.0"
 nalgebra = { version = "0.33.2", features = ["rand"] }
 plotters = "0.3.6"
-rand = "0.8.5"
+rand = "0.9.1"
 
 [profile.dev.package.faer]
 opt-level = 3
