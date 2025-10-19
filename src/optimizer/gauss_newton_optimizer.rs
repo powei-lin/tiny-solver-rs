@@ -95,8 +95,9 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
                 break;
-            } else if last_err > 0.0 && (last_err - current_error).abs() / last_err
-                < opt_option.min_rel_error_decrease_threshold
+            } else if last_err > 0.0
+                && (last_err - current_error).abs() / last_err
+                    < opt_option.min_rel_error_decrease_threshold
             {
                 trace!("relative error decrease low");
                 break;

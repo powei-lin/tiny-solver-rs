@@ -14,4 +14,3 @@ pub use linear::*;
 pub use optimizer::*;
 pub use problem::*;
 pub use residual_block::*;
-
