@@ -81,10 +81,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             current_error = self.compute_error(problem, &parameter_blocks);
             trace!(
                 "iter:{}, total err:{}, residual + jacobian duration: {:?}, solving duration: {:?}",
-                i,
-                current_error,
-                residual_and_jacobian_duration,
-                solving_duration
+                i, current_error, residual_and_jacobian_duration, solving_duration
             );
 
             if current_error < opt_option.min_error_threshold {
@@ -98,7 +95,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
                 break;
-            } else if (last_err - current_error).abs() / last_err
+            } else if last_err > 0.0 && (last_err - current_error).abs() / last_err
                 < opt_option.min_rel_error_decrease_threshold
             {
                 trace!("relative error decrease low");

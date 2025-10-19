@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use plotters::prelude::*;
 
-use tiny_solver::{helper::read_g2o, optimizer::Optimizer, GaussNewtonOptimizer};
+use tiny_solver::{GaussNewtonOptimizer, helper::read_g2o, optimizer::Optimizer};
 
 fn main() {
     // init logger
