@@ -332,7 +332,19 @@ impl Problem {
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
                 for row_idx in 0..jac.shape().0 {
                     for col_idx in 0..var_size {
-                        local_jacobian_list.push(variable_jac[(row_idx, col_idx)]);
+                        let j_value = variable_jac[(row_idx, col_idx)];
+                        if j_value.is_finite() {
+                            local_jacobian_list.push(j_value);
+                        } else {
+                            log::warn!(
+                                "Non-finite Jacobian value detected at residual block {}, variable {}, row {}, col {}. Setting to 0.0",
+                                residual_block.residual_block_id,
+                                var_key,
+                                row_idx,
+                                col_idx
+                            );
+                            local_jacobian_list.push(0.0);
+                        }
                     }
                 }
             } else {
