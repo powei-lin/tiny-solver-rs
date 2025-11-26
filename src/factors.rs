@@ -83,8 +83,10 @@ impl<T: na::RealField> Factor<T> for BetweenFactorSE3 {
         let se3_origin_k1 = SE3::from_vec(t_origin_k1.as_view());
 
         let se3_k0_k1 = SE3::from_vec(
-            na::dvector![self.dqx, self.dqy, self.dqz, self.dqw, self.dtx, self.dty, self.dtz,]
-                .as_view(),
+            na::dvector![
+                self.dqx, self.dqy, self.dqz, self.dqw, self.dtx, self.dty, self.dtz,
+            ]
+            .as_view(),
         )
         .cast::<T>();
 

@@ -67,10 +67,18 @@ impl Problem {
                 if let Some(variable_global_idx) = variable_name_to_col_idx_dict.get(var_key) {
                     let (_, var_size) = variable_local_idx_size_list[i];
                     for row_idx in 0..residual_block.dim_residual {
+                        let mut current_var_col_offset = 0;
                         for col_idx in 0..var_size {
+                            if let Some(param) = parameter_blocks.get(var_key)
+                                && param.manifold.is_none()
+                                && param.fixed_variables.contains(&col_idx)
+                            {
+                                continue;
+                            }
                             let global_row_idx = residual_block.residual_row_start_idx + row_idx;
-                            let global_col_idx = variable_global_idx + col_idx;
+                            let global_col_idx = variable_global_idx + current_var_col_offset;
                             indices.push(Pair::new(global_row_idx, global_col_idx));
+                            current_var_col_offset += 1;
                         }
                     }
                 }
@@ -100,7 +108,12 @@ impl Problem {
             .iter()
             .for_each(|(param_name, param_block)| {
                 variable_name_to_col_idx_dict.insert(param_name.to_owned(), count_col_idx);
-                count_col_idx += param_block.tangent_size();
+                let effective_size = if param_block.manifold.is_some() {
+                    param_block.tangent_size()
+                } else {
+                    param_block.tangent_size() - param_block.fixed_variables.len()
+                };
+                count_col_idx += effective_size;
             });
         variable_name_to_col_idx_dict
     }
@@ -330,9 +343,25 @@ impl Problem {
             if variable_name_to_col_idx_dict.contains_key(var_key) {
                 let (variable_local_idx, var_size) = variable_local_idx_size_list[i];
                 let variable_jac = jac.view((0, variable_local_idx), (jac.shape().0, var_size));
+                let param = &params[i];
                 for row_idx in 0..jac.shape().0 {
                     for col_idx in 0..var_size {
-                        local_jacobian_list.push(variable_jac[(row_idx, col_idx)]);
+                        if param.manifold.is_none() && param.fixed_variables.contains(&col_idx) {
+                            continue;
+                        }
+                        let j_value = variable_jac[(row_idx, col_idx)];
+                        if j_value.is_finite() {
+                            local_jacobian_list.push(j_value);
+                        } else {
+                            log::warn!(
+                                "Non-finite Jacobian value detected at residual block {}, variable {}, row {}, col {}. Setting to 0.0",
+                                residual_block.residual_block_id,
+                                var_key,
+                                row_idx,
+                                col_idx
+                            );
+                            local_jacobian_list.push(0.0);
+                        }
                     }
                 }
             } else {

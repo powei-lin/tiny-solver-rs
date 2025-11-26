@@ -2,7 +2,7 @@ use std::{num::NonZero, ops::Mul};
 
 use nalgebra as na;
 
-use super::{so3::SO3, AutoDiffManifold, Manifold};
+use super::{AutoDiffManifold, Manifold, so3::SO3};
 
 pub struct SE3<T: na::RealField> {
     pub xyz: na::Vector3<T>,

@@ -51,8 +51,28 @@ pub trait Optimizer {
     ) {
         params.iter_mut().for_each(|(key, param)| {
             if let Some(col_idx) = variable_name_to_col_idx_dict.get(key) {
-                let var_size = param.tangent_size();
-                param.update_params(param.plus_f64(dx.rows(*col_idx, var_size)));
+                let tangent_size = param.tangent_size();
+                let effective_size = if param.manifold.is_some() {
+                    tangent_size
+                } else {
+                    tangent_size - param.fixed_variables.len()
+                };
+
+                let dx_reduced = dx.rows(*col_idx, effective_size);
+
+                let mut dx_full = na::DVector::zeros(tangent_size);
+                if param.manifold.is_some() {
+                    dx_full.copy_from(&dx_reduced);
+                } else {
+                    let mut reduced_idx = 0;
+                    for i in 0..tangent_size {
+                        if !param.fixed_variables.contains(&i) {
+                            dx_full[i] = dx_reduced[reduced_idx];
+                            reduced_idx += 1;
+                        }
+                    }
+                }
+                param.update_params(param.plus_f64(dx_full.rows(0, tangent_size)));
             }
         });
         // for (key, param) in params.par_iter_mut() {

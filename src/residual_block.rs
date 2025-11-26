@@ -77,8 +77,7 @@ impl ResidualBlock {
                         )
                     }),
                 );
-                let param_plus_dual = param.plus_dual(zeros_with_dual.as_view());
-                param_plus_dual
+                param.plus_dual(zeros_with_dual.as_view())
             })
             .collect();
 

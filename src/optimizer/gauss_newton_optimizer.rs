@@ -35,7 +35,16 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
         let variable_name_to_col_idx_dict =
             problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
-        let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
+        let total_variable_dimension = parameter_blocks
+            .values()
+            .map(|p| {
+                if p.manifold.is_some() {
+                    p.tangent_size()
+                } else {
+                    p.tangent_size() - p.fixed_variables.len()
+                }
+            })
+            .sum();
 
         let opt_option = optimizer_option.unwrap_or_default();
         let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
@@ -81,10 +90,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             current_error = self.compute_error(problem, &parameter_blocks);
             trace!(
                 "iter:{}, total err:{}, residual + jacobian duration: {:?}, solving duration: {:?}",
-                i,
-                current_error,
-                residual_and_jacobian_duration,
-                solving_duration
+                i, current_error, residual_and_jacobian_duration, solving_duration
             );
 
             if current_error < opt_option.min_error_threshold {
@@ -98,8 +104,9 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
                 break;
-            } else if (last_err - current_error).abs() / last_err
-                < opt_option.min_rel_error_decrease_threshold
+            } else if last_err > 0.0
+                && (last_err - current_error).abs() / last_err
+                    < opt_option.min_rel_error_decrease_threshold
             {
                 trace!("relative error decrease low");
                 break;
