@@ -172,4 +172,71 @@ mod tests {
         assert_eq!(jac.nrows(), 3);
         assert_eq!(jac.ncols(), 3);
     }
+
+    #[test]
+    fn compute_residual_and_jacobian_with_fixed_variable() {
+        let mut problem = tiny_solver::Problem::new();
+        problem.add_residual_block(
+            1,
+            &["x"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![3.0],
+            }),
+            None,
+        );
+
+        struct CustomFactor {}
+        impl<T: na::RealField> tiny_solver::factors::Factor<T> for CustomFactor {
+            fn residual_func(&self, params: &[nalgebra::DVector<T>]) -> nalgebra::DVector<T> {
+                let x = &params[0][0];
+                let y = &params[1][0];
+                let z = &params[1][1];
+
+                na::dvector![
+                    x.clone()
+                        + y.clone() * T::from_f64(2.0).unwrap()
+                        + z.clone() * T::from_f64(4.0).unwrap(),
+                    y.clone() * z.clone()
+                ]
+            }
+        }
+
+        problem.add_residual_block(2, &["x", "yz"], Box::new(CustomFactor {}), None);
+        problem.fix_variable("x", 0);
+
+        // the initial values for x is 0.7 and yz is [-30.2, 123.4]
+        let initial_values = HashMap::<String, na::DVector<f64>>::from([
+            ("x".to_string(), na::dvector![0.7]),
+            ("yz".to_string(), na::dvector![-30.2, 123.4]),
+        ]);
+        let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
+        let variable_name_to_col_idx_dict =
+            problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
+        let total_variable_dimension = parameter_blocks
+            .values()
+            .map(|p| {
+                if p.manifold.is_some() {
+                    p.tangent_size()
+                } else {
+                    p.tangent_size() - p.fixed_variables.len()
+                }
+            })
+            .sum();
+        let symbolic_structure = problem.build_symbolic_structure(
+            &parameter_blocks,
+            total_variable_dimension,
+            &variable_name_to_col_idx_dict,
+        );
+
+        let (residuals, jac) = problem.compute_residual_and_jacobian(
+            &parameter_blocks,
+            &variable_name_to_col_idx_dict,
+            &symbolic_structure,
+        );
+
+        assert_eq!(residuals.nrows(), 3);
+        assert_eq!(residuals.ncols(), 1);
+        assert_eq!(jac.nrows(), 3);
+        assert_eq!(jac.ncols(), 2); // x is fixed, so 3 - 1 = 2
+    }
 }

@@ -35,7 +35,16 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
         let variable_name_to_col_idx_dict =
             problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
-        let total_variable_dimension = parameter_blocks.values().map(|p| p.tangent_size()).sum();
+        let total_variable_dimension = parameter_blocks
+            .values()
+            .map(|p| {
+                if p.manifold.is_some() {
+                    p.tangent_size()
+                } else {
+                    p.tangent_size() - p.fixed_variables.len()
+                }
+            })
+            .sum();
 
         let opt_option = optimizer_option.unwrap_or_default();
         let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
