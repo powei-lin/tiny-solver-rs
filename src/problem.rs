@@ -71,10 +71,10 @@ impl Problem {
                         for col_idx in 0..var_size {
                             if let Some(param) = parameter_blocks.get(var_key)
                                 && param.manifold.is_none()
-                                    && param.fixed_variables.contains(&col_idx)
-                                {
-                                    continue;
-                                }
+                                && param.fixed_variables.contains(&col_idx)
+                            {
+                                continue;
+                            }
                             let global_row_idx = residual_block.residual_row_start_idx + row_idx;
                             let global_col_idx = variable_global_idx + current_var_col_offset;
                             indices.push(Pair::new(global_row_idx, global_col_idx));
