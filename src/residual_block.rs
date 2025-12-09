@@ -6,8 +6,10 @@ use crate::factors::FactorImpl;
 use crate::loss_functions::Loss;
 use crate::parameter_block::ParameterBlock;
 
+use slotmap::DefaultKey;
+
 pub struct ResidualBlock {
-    pub residual_block_id: usize,
+    pub residual_block_id: DefaultKey,
     pub dim_residual: usize,
     pub residual_row_start_idx: usize,
     pub variable_key_list: Vec<String>,
@@ -16,7 +18,7 @@ pub struct ResidualBlock {
 }
 impl ResidualBlock {
     pub fn new(
-        residual_block_id: usize,
+        residual_block_id: DefaultKey,
         dim_residual: usize,
         residual_row_start_idx: usize,
         variable_key_size_list: &[&str],

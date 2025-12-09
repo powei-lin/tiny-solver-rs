@@ -5,17 +5,17 @@ use faer::sparse::{Argsort, Pair, SparseColMat, SymbolicSparseColMat};
 use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
+use slotmap::{DefaultKey, SlotMap};
 
 use crate::manifold::Manifold;
 use crate::parameter_block::ParameterBlock;
 use crate::{factors, loss_functions, residual_block};
 
-type ResidualBlockId = usize;
+type ResidualBlockId = DefaultKey;
 
 pub struct Problem {
     pub total_residual_dimension: usize,
-    residual_id_count: usize,
-    residual_blocks: HashMap<ResidualBlockId, residual_block::ResidualBlock>,
+    residual_blocks: SlotMap<ResidualBlockId, residual_block::ResidualBlock>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
     pub variable_manifold: HashMap<String, Arc<dyn Manifold + Sync + Send>>,
@@ -37,8 +37,7 @@ impl Problem {
     pub fn new() -> Problem {
         Problem {
             total_residual_dimension: 0,
-            residual_id_count: 0,
-            residual_blocks: HashMap::new(),
+            residual_blocks: SlotMap::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
             variable_manifold: HashMap::new(),
@@ -124,19 +123,16 @@ impl Problem {
         factor: Box<dyn factors::FactorImpl + Send>,
         loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) -> ResidualBlockId {
-        self.residual_blocks.insert(
-            self.residual_id_count,
+        let block_id = self.residual_blocks.insert_with_key(|key| {
             residual_block::ResidualBlock::new(
-                self.residual_id_count,
+                key,
                 dim_residual,
                 self.total_residual_dimension,
                 variable_key_size_list,
                 factor,
                 loss_func,
-            ),
-        );
-        let block_id = self.residual_id_count;
-        self.residual_id_count += 1;
+            )
+        });
 
         self.total_residual_dimension += dim_residual;
 
@@ -146,7 +142,7 @@ impl Problem {
         &mut self,
         block_id: ResidualBlockId,
     ) -> Option<residual_block::ResidualBlock> {
-        if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
+        if let Some(residual_block) = self.residual_blocks.remove(block_id) {
             self.total_residual_dimension -= residual_block.dim_residual;
             Some(residual_block)
         } else {
@@ -225,16 +221,16 @@ impl Problem {
         let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
             self.total_residual_dimension,
         )));
-        self.residual_blocks
-            .par_iter()
-            .for_each(|(_, residual_block)| {
-                self.compute_residual_impl(
-                    residual_block,
-                    parameter_blocks,
-                    &total_residual,
-                    with_loss_fn,
-                )
-            });
+        let residual_blocks: Vec<&residual_block::ResidualBlock> =
+            self.residual_blocks.values().collect();
+        residual_blocks.par_iter().for_each(|residual_block| {
+            self.compute_residual_impl(
+                residual_block,
+                parameter_blocks,
+                &total_residual,
+                with_loss_fn,
+            )
+        });
         let total_residual = Arc::try_unwrap(total_residual)
             .unwrap()
             .into_inner()
@@ -254,10 +250,11 @@ impl Problem {
             self.total_residual_dimension,
         )));
 
-        let jacobian_lists: Vec<JacobianValue> = self
-            .residual_blocks
+        let residual_blocks: Vec<&residual_block::ResidualBlock> =
+            self.residual_blocks.values().collect();
+        let jacobian_lists: Vec<JacobianValue> = residual_blocks
             .par_iter()
-            .map(|(_, residual_block)| {
+            .map(|residual_block| {
                 self.compute_residual_and_jacobian_impl(
                     residual_block,
                     parameter_blocks,
@@ -354,7 +351,7 @@ impl Problem {
                             local_jacobian_list.push(j_value);
                         } else {
                             log::warn!(
-                                "Non-finite Jacobian value detected at residual block {}, variable {}, row {}, col {}. Setting to 0.0",
+                                "Non-finite Jacobian value detected at residual block {:?}, variable {}, row {}, col {}. Setting to 0.0",
                                 residual_block.residual_block_id,
                                 var_key,
                                 row_idx,
