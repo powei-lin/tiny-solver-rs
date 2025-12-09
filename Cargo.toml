@@ -38,6 +38,7 @@ name = "sphere2500"
 name = "parking-garage"
 
 [dev-dependencies]
+diol = "0.13.1"
 env_logger = "0.11.8"
 itertools = "0.14.0"
 nalgebra = { version = "0.34.1", features = ["rand"] }
@@ -49,3 +50,7 @@ opt-level = 3
 
 [lib]
 name = "tiny_solver"
+
+[[bench]]
+name = "bench"
+harness = false
