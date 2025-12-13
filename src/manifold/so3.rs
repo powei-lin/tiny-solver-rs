@@ -104,6 +104,41 @@ impl<T: na::RealField> SO3<T> {
         xi_hat
     }
 
+    pub fn mat_v(xi: na::VectorView3<T>) -> na::Matrix3<T> {
+        let theta2 = xi.norm_squared();
+        let xi_hat = SO3::hat(xi);
+        let xi_hat2 = xi_hat.clone() * xi_hat.clone();
+        let id = na::Matrix3::identity();
+
+        if theta2 < T::from_f64(1e-6).unwrap() {
+            id + xi_hat.scale(T::from_f64(0.5).unwrap())
+        } else {
+            let theta = theta2.clone().sqrt();
+            let a = (T::one() - theta.clone().cos()) / theta2.clone();
+            let b = (theta.clone() - theta.clone().sin()) / (theta2.clone() * theta.clone());
+            id + xi_hat.scale(a) + xi_hat2.scale(b)
+        }
+    }
+
+    pub fn mat_v_inverse(xi: na::VectorView3<T>) -> na::Matrix3<T> {
+        let theta2 = xi.norm_squared();
+        let xi_hat = SO3::hat(xi);
+        let xi_hat2 = xi_hat.clone() * xi_hat.clone();
+        let id = na::Matrix3::identity();
+
+        if theta2 < T::from_f64(1e-6).unwrap() {
+            id - xi_hat.scale(T::from_f64(0.5).unwrap())
+                + xi_hat2.scale(T::from_f64(1.0 / 12.0).unwrap())
+        } else {
+            let theta = theta2.clone().sqrt();
+            let half_theta = theta.clone() * T::from_f64(0.5).unwrap();
+            let cot_half_theta = half_theta.clone().cos() / half_theta.sin();
+            let factor =
+                (T::one() - (theta.clone() * T::from_f64(0.5).unwrap() * cot_half_theta)) / theta2;
+            id - xi_hat.scale(T::from_f64(0.5).unwrap()) + xi_hat2.scale(factor)
+        }
+    }
+
     pub fn to_vec(&self) -> na::Vector4<T> {
         na::Vector4::new(
             self.qx.clone(),

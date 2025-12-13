@@ -1,14 +1,13 @@
 use diol::prelude::*;
-use tiny_solver::{GaussNewtonOptimizer, LevenbergMarquardtOptimizer, helper::read_g2o, optimizer::Optimizer};
+use tiny_solver::{
+    GaussNewtonOptimizer, LevenbergMarquardtOptimizer, helper::read_g2o, optimizer::Optimizer,
+};
 
 fn main() -> eyre::Result<()> {
     let bench = Bench::from_args()?;
     bench.register_many(
         "g2o",
-        list![
-            bench_g2o_gn,
-            bench_g2o_lm
-        ],
+        list![bench_g2o_gn, bench_g2o_lm],
         ["input_M3500_g2o", "parking-garage", "sphere2500"],
     );
     bench.run()?;

@@ -37,18 +37,27 @@ impl<T: na::RealField> SE3<T> {
     }
 
     pub fn exp(xi: na::DVectorView<T>) -> Self {
-        // fake exp
+        let omega = na::Vector3::new(xi[0].clone(), xi[1].clone(), xi[2].clone());
+        let rho = na::Vector3::new(xi[3].clone(), xi[4].clone(), xi[5].clone());
         let rot = SO3::<T>::exp(xi.rows(0, 3).as_view());
-        let xyz = na::Vector3::new(xi[3].clone(), xi[4].clone(), xi[5].clone());
+        let v = SO3::mat_v(omega.as_view());
+        let xyz = v * rho;
         SE3 { xyz, rot }
     }
 
     pub fn log(&self) -> na::DVector<T> {
         let mut xi = na::DVector::zeros(6);
         let xi_theta = self.rot.log();
-        // let xyz = self.xyz;
+        let omega = na::Vector3::new(
+            xi_theta[0].clone(),
+            xi_theta[1].clone(),
+            xi_theta[2].clone(),
+        );
+        let v_inv = SO3::mat_v_inverse(omega.as_view());
+        let rho = v_inv * self.xyz.clone();
+
         xi.as_mut_slice()[0..3].clone_from_slice(xi_theta.as_slice());
-        xi.as_mut_slice()[3..6].clone_from_slice(self.xyz.as_slice());
+        xi.as_mut_slice()[3..6].clone_from_slice(rho.as_slice());
         xi
     }
 

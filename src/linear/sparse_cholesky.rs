@@ -49,9 +49,7 @@ impl SparseCholeskySolver {
         );
 
         SparseColMat::new(
-            unsafe {
-                SymbolicSparseColMat::new_unchecked(dim, dim, col_ptrs, None, row_indices)
-            },
+            unsafe { SymbolicSparseColMat::new_unchecked(dim, dim, col_ptrs, None, row_indices) },
             values,
         )
     }
@@ -69,7 +67,6 @@ impl SparseLinearSolver for SparseCholeskySolver {
         residuals: &faer::Mat<f64>,
         jacobians: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>> {
-        
         // ====================================================
         // 修改點：優先在 solve 階段使用 COLAMD (因為這裡有 J)
         // ====================================================
@@ -95,7 +92,8 @@ impl SparseLinearSolver for SparseCholeskySolver {
                 jacobians.symbolic(), // 傳入 J 的結構
                 colamd::Control::default(),
                 stack,
-            ).expect("COLAMD ordering failed");
+            )
+            .expect("COLAMD ordering failed");
 
             let perm = Perm::new_checked(
                 perm_fwd.into_boxed_slice(),
@@ -112,15 +110,14 @@ impl SparseLinearSolver for SparseCholeskySolver {
                 .to_col_major()
                 .unwrap()
                 .mul(jacobians.as_ref());
-            
+
             // 將 J^T J 重排： P * (J^T J) * P^T
             let jtj_permuted = self.permute_jtj(&jtj, perm.as_ref());
 
             // 5. 建立 Symbolic Analysis
-            let symbolic = solvers::SymbolicLlt::try_new(
-                jtj_permuted.symbolic(),
-                faer::Side::Lower,
-            ).expect("Symbolic analysis failed");
+            let symbolic =
+                solvers::SymbolicLlt::try_new(jtj_permuted.symbolic(), faer::Side::Lower)
+                    .expect("Symbolic analysis failed");
 
             self.cache = Some((symbolic, perm));
         }
@@ -157,18 +154,24 @@ impl SparseLinearSolver for SparseCholeskySolver {
             let req = amd::order_scratch::<usize>(dim, nnz);
             let mut mem = MemBuffer::try_new(req).expect("AMD memory alloc failed");
             let stack = MemStack::new(&mut mem);
-            
-            amd::order(
-                &mut perm_fwd, 
-                &mut perm_inv, 
-                jtj.symbolic(), 
-                amd::Control::default(), 
-                stack
-            ).expect("AMD failed");
 
-            let perm = Perm::new_checked(perm_fwd.into_boxed_slice(), perm_inv.into_boxed_slice(), dim);
+            amd::order(
+                &mut perm_fwd,
+                &mut perm_inv,
+                jtj.symbolic(),
+                amd::Control::default(),
+                stack,
+            )
+            .expect("AMD failed");
+
+            let perm = Perm::new_checked(
+                perm_fwd.into_boxed_slice(),
+                perm_inv.into_boxed_slice(),
+                dim,
+            );
             let jtj_permuted = self.permute_jtj(jtj, perm.as_ref());
-            let symbolic = solvers::SymbolicLlt::try_new(jtj_permuted.symbolic(), faer::Side::Lower).unwrap();
+            let symbolic =
+                solvers::SymbolicLlt::try_new(jtj_permuted.symbolic(), faer::Side::Lower).unwrap();
             self.cache = Some((symbolic, perm));
         }
 
