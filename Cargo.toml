@@ -55,3 +55,7 @@ name = "tiny_solver"
 [[bench]]
 name = "bench"
 harness = false
+
+[profile.profiling]
+inherits = "release"
+debug = true
