@@ -374,4 +374,165 @@ impl Problem {
 
         local_jacobian_list
     }
+
+    /// Marginalizes the given variables out of the problem using the Schur complement.
+    ///
+    /// Returns a [`factors::MarginalizationFactor`] that encodes the information from the
+    /// marginalized variables as a dense prior on the remaining (kept) variables.
+    /// Returns `None` if the Hessian sub-block for the marginalized variables is not
+    /// positive definite (e.g., under-constrained system).
+    ///
+    /// # Arguments
+    /// * `initial_values` – current linearization point for all variables.
+    /// * `variables_to_marginalize` – names of the variables to eliminate.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let marg = problem.marginalize(&values, &["landmark_0"])?;
+    /// let names: Vec<&str> = marg.variable_names.iter().map(|s| s.as_str()).collect();
+    /// let dim = marg.sqrt_info.nrows();
+    /// new_problem.add_residual_block(dim, &names, Box::new(marg), None);
+    /// ```
+    pub fn marginalize(
+        &self,
+        initial_values: &HashMap<String, na::DVector<f64>>,
+        variables_to_marginalize: &[&str],
+    ) -> Option<factors::MarginalizationFactor> {
+        let marg_set: HashSet<&str> = variables_to_marginalize.iter().copied().collect();
+
+        let parameter_blocks = self.initialize_parameter_blocks(initial_values);
+        let variable_name_to_col_idx_dict =
+            self.get_variable_name_to_col_idx_dict(&parameter_blocks);
+        let total_variable_dimension: usize = parameter_blocks
+            .values()
+            .map(|p| {
+                if p.manifold.is_some() {
+                    p.tangent_size()
+                } else {
+                    p.tangent_size() - p.fixed_variables.len()
+                }
+            })
+            .sum();
+
+        if total_variable_dimension == 0 || self.total_residual_dimension == 0 {
+            return None;
+        }
+
+        let symbolic_structure = self.build_symbolic_structure(
+            &parameter_blocks,
+            total_variable_dimension,
+            &variable_name_to_col_idx_dict,
+        );
+
+        let (residuals_faer, jacobian_sparse) = self.compute_residual_and_jacobian(
+            &parameter_blocks,
+            &variable_name_to_col_idx_dict,
+            &symbolic_structure,
+        );
+
+        // Convert sparse Jacobian to dense nalgebra matrix
+        let r_dim = residuals_faer.nrows();
+        let jac_faer_dense = jacobian_sparse.to_dense();
+        use faer_ext::IntoNalgebra;
+        let jac: na::DMatrix<f64> = jac_faer_dense.as_ref().into_nalgebra().clone_owned();
+
+        let res_view = residuals_faer.as_ref().into_nalgebra();
+        let res = na::DVector::<f64>::from_iterator(r_dim, (0..r_dim).map(|i| res_view[(i, 0)]));
+
+        // Sort variables by column index for a consistent ordering
+        let mut var_info: Vec<(String, usize, usize)> = variable_name_to_col_idx_dict
+            .iter()
+            .map(|(name, &col_start)| {
+                let param = &parameter_blocks[name];
+                let effective_size = if param.manifold.is_some() {
+                    param.tangent_size()
+                } else {
+                    param.tangent_size() - param.fixed_variables.len()
+                };
+                (name.clone(), col_start, effective_size)
+            })
+            .collect();
+        var_info.sort_by_key(|(_, col_start, _)| *col_start);
+
+        // Partition into keep and marginalize variable lists
+        let keep_vars: Vec<_> = var_info
+            .iter()
+            .filter(|(name, _, _)| !marg_set.contains(name.as_str()))
+            .cloned()
+            .collect();
+        let marg_vars: Vec<_> = var_info
+            .iter()
+            .filter(|(name, _, _)| marg_set.contains(name.as_str()))
+            .cloned()
+            .collect();
+
+        if keep_vars.is_empty() {
+            log::error!("marginalize: all variables would be eliminated; nothing to keep");
+            return None;
+        }
+        if marg_vars.is_empty() {
+            log::warn!("marginalize: none of the requested variables exist in the problem");
+            return None;
+        }
+
+        // Collect global column indices for each partition
+        let keep_cols: Vec<usize> = keep_vars
+            .iter()
+            .flat_map(|(_, col_start, size)| *col_start..*col_start + *size)
+            .collect();
+        let marg_cols: Vec<usize> = marg_vars
+            .iter()
+            .flat_map(|(_, col_start, size)| *col_start..*col_start + *size)
+            .collect();
+
+        let dim_keep = keep_cols.len();
+        let dim_marg = marg_cols.len();
+
+        // Extract J_a (kept) and J_b (marginalized) sub-blocks
+        let j_a = na::DMatrix::<f64>::from_fn(r_dim, dim_keep, |r, c| jac[(r, keep_cols[c])]);
+        let j_b = na::DMatrix::<f64>::from_fn(r_dim, dim_marg, |r, c| jac[(r, marg_cols[c])]);
+
+        // Hessian blocks: H = J^T J,  gradient: b = J^T r
+        let h_aa = j_a.tr_mul(&j_a);
+        let h_ab = j_a.tr_mul(&j_b);
+        let h_bb = j_b.tr_mul(&j_b);
+        let b_a = j_a.tr_mul(&res);
+        let b_b = j_b.tr_mul(&res);
+
+        // Schur complement: H_sc = H_aa - H_ab * H_bb^{-1} * H_ba
+        //                   b_sc = b_a  - H_ab * H_bb^{-1} * b_b
+        let h_bb_chol = h_bb.cholesky()?;
+        let h_bb_inv_h_ba = h_bb_chol.solve(&h_ab.transpose()); // (dim_marg × dim_keep)
+        let h_sc = h_aa - &h_ab * h_bb_inv_h_ba;
+        let h_bb_inv_b_b = h_bb_chol.solve(&b_b);
+        let b_sc = b_a - &h_ab * h_bb_inv_b_b;
+
+        // Factor H_sc = L * L^T via Cholesky
+        let h_sc_chol = h_sc.cholesky()?;
+        // r_0 = L^{-1} * b_sc  =  L^T * (H_sc^{-1} * b_sc)
+        let x_solve = h_sc_chol.solve(&b_sc);
+        let l = h_sc_chol.unpack(); // lower triangular L
+        let sqrt_info = l.transpose(); // L^T  (square-root information matrix)
+        let residual_at_lin = &sqrt_info * x_solve;
+
+        // Collect metadata for the kept variables
+        let variable_names: Vec<String> =
+            keep_vars.iter().map(|(name, _, _)| name.clone()).collect();
+        let linearization_points: Vec<na::DVector<f64>> = variable_names
+            .iter()
+            .map(|name| initial_values[name].clone())
+            .collect();
+        let manifolds: Vec<_> = variable_names
+            .iter()
+            .map(|name| parameter_blocks[name].manifold.clone())
+            .collect();
+
+        Some(factors::MarginalizationFactor {
+            variable_names,
+            linearization_points,
+            sqrt_info,
+            residual_at_lin,
+            manifolds,
+        })
+    }
 }

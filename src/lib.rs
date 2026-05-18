@@ -10,6 +10,7 @@ pub mod problem;
 pub mod residual_block;
 
 pub use factors::na;
+pub use factors::MarginalizationFactor;
 pub use linear::*;
 pub use optimizer::*;
 pub use problem::*;
