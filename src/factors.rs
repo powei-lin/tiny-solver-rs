@@ -2,18 +2,34 @@ pub use nalgebra as na;
 
 use crate::manifold::se3::SE3;
 
+pub mod bal;
+mod numeric_diff;
+pub use numeric_diff::*;
+
 pub trait Factor<T: na::RealField>: Send + Sync {
     fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T>;
 }
-pub trait FactorImpl: Factor<num_dual::DualDVec64> + Factor<f64> {
+
+pub trait FactorImpl: Send + Sync {
     fn residual_func_dual(
         &self,
         params: &[na::DVector<num_dual::DualDVec64>],
-    ) -> na::DVector<num_dual::DualDVec64> {
-        self.residual_func(params)
+    ) -> na::DVector<num_dual::DualDVec64>;
+    fn residual_func_f64(&self, params: &[na::DVector<f64>]) -> na::DVector<f64>;
+    fn residual_func_f64_refs(&self, _params: &[&na::DVector<f64>]) -> Option<na::DVector<f64>> {
+        None
     }
-    fn residual_func_f64(&self, params: &[na::DVector<f64>]) -> na::DVector<f64> {
-        self.residual_func(params)
+    fn residual_and_jacobians_f64(
+        &self,
+        _params: &[na::DVector<f64>],
+    ) -> Option<(na::DVector<f64>, Vec<na::DMatrix<f64>>)> {
+        None
+    }
+    fn residual_and_jacobians_f64_refs(
+        &self,
+        _params: &[&na::DVector<f64>],
+    ) -> Option<(na::DVector<f64>, Vec<na::DMatrix<f64>>)> {
+        None
     }
 }
 
@@ -30,6 +46,68 @@ where
 
     fn residual_func_f64(&self, params: &[na::DVector<f64>]) -> na::DVector<f64> {
         self.residual_func(params)
+    }
+}
+
+pub trait AnalyticFactor: Send + Sync {
+    fn residual(&self, params: &[na::DVector<f64>]) -> na::DVector<f64> {
+        self.residual_and_jacobians(params).0
+    }
+
+    fn residual_refs(&self, _params: &[&na::DVector<f64>]) -> Option<na::DVector<f64>> {
+        None
+    }
+
+    fn residual_and_jacobians(
+        &self,
+        params: &[na::DVector<f64>],
+    ) -> (na::DVector<f64>, Vec<na::DMatrix<f64>>);
+    fn residual_and_jacobians_refs(
+        &self,
+        _params: &[&na::DVector<f64>],
+    ) -> Option<(na::DVector<f64>, Vec<na::DMatrix<f64>>)> {
+        None
+    }
+}
+
+pub struct AnalyticFactorAdapter<F> {
+    factor: F,
+}
+
+impl<F> AnalyticFactorAdapter<F> {
+    pub fn new(factor: F) -> Self {
+        Self { factor }
+    }
+}
+
+impl<F: AnalyticFactor> FactorImpl for AnalyticFactorAdapter<F> {
+    fn residual_func_dual(
+        &self,
+        _params: &[na::DVector<num_dual::DualDVec64>],
+    ) -> na::DVector<num_dual::DualDVec64> {
+        panic!("analytic factors do not evaluate dual numbers")
+    }
+
+    fn residual_func_f64(&self, params: &[na::DVector<f64>]) -> na::DVector<f64> {
+        self.factor.residual(params)
+    }
+
+    fn residual_func_f64_refs(&self, params: &[&na::DVector<f64>]) -> Option<na::DVector<f64>> {
+        self.factor.residual_refs(params)
+    }
+
+    fn residual_and_jacobians_f64(
+        &self,
+        params: &[na::DVector<f64>],
+    ) -> Option<(na::DVector<f64>, Vec<na::DMatrix<f64>>)> {
+        Some(self.factor.residual_and_jacobians(params))
+    }
+
+    fn residual_and_jacobians_f64_refs(
+        &self,
+        params: &[&na::DVector<f64>],
+    ) -> Option<(na::DVector<f64>, Vec<na::DMatrix<f64>>)> {
+        self.factor.residual_and_jacobians_refs(params)
     }
 }
 

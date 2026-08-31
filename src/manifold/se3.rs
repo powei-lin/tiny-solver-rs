@@ -1,4 +1,4 @@
-use std::{num::NonZero, ops::Mul};
+use std::ops::Mul;
 
 use nalgebra as na;
 
@@ -168,7 +168,11 @@ impl<T: na::RealField> AutoDiffManifold<T> for SE3Manifold {
     }
 }
 impl Manifold for SE3Manifold {
-    fn tangent_size(&self) -> NonZero<usize> {
-        NonZero::new(6).unwrap()
+    fn ambient_size(&self) -> usize {
+        7
+    }
+
+    fn tangent_size(&self) -> usize {
+        6
     }
 }

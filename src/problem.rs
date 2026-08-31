@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use faer::sparse::{Argsort, Pair, SparseColMat, SymbolicSparseColMat};
+use faer::sparse::{SparseColMat, SymbolicSparseColMat};
 use faer_ext::IntoFaer;
 use nalgebra as na;
 use rayon::prelude::*;
 
+use crate::ParameterBlockOrdering;
 use crate::manifold::Manifold;
 use crate::parameter_block::ParameterBlock;
 use crate::{factors, loss_functions, residual_block};
@@ -15,7 +16,8 @@ type ResidualBlockId = usize;
 pub struct Problem {
     pub total_residual_dimension: usize,
     residual_id_count: usize,
-    residual_blocks: HashMap<ResidualBlockId, residual_block::ResidualBlock>,
+    residual_order: Vec<ResidualBlockId>,
+    residual_blocks: Vec<Option<residual_block::ResidualBlock>>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
     pub variable_manifold: HashMap<String, Arc<dyn Manifold + Sync + Send>>,
@@ -28,7 +30,19 @@ impl Default for Problem {
 
 pub struct SymbolicStructure {
     pattern: SymbolicSparseColMat<usize>,
-    order: Argsort<usize>,
+    value_scatter: Vec<(usize, usize)>,
+    parameter_names: Vec<String>,
+    residual_parameter_indices: Vec<Vec<usize>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParameterLayout {
+    pub variable_name_to_col_idx: HashMap<String, usize>,
+    pub total_dimension: usize,
+    pub parameter_block_sizes: Vec<usize>,
+    pub schur_elimination_dimension: usize,
+    pub schur_elimination_block_sizes: Vec<usize>,
+    pub schur_retained_block_sizes: Vec<usize>,
 }
 
 type JacobianValue = f64;
@@ -38,7 +52,8 @@ impl Problem {
         Problem {
             total_residual_dimension: 0,
             residual_id_count: 0,
-            residual_blocks: HashMap::new(),
+            residual_order: Vec::new(),
+            residual_blocks: Vec::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
             variable_manifold: HashMap::new(),
@@ -51,9 +66,25 @@ impl Problem {
         total_variable_dimension: usize,
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
     ) -> SymbolicStructure {
-        let mut indices = Vec::<Pair<usize, usize>>::new();
+        let mut columns = vec![Vec::<(usize, usize)>::new(); total_variable_dimension];
+        let mut source_index = 0;
+        let parameter_names: Vec<_> = parameter_blocks.keys().cloned().collect();
+        let parameter_indices: HashMap<_, _> = parameter_names
+            .iter()
+            .enumerate()
+            .map(|(index, name)| (name.as_str(), index))
+            .collect();
+        let mut residual_parameter_indices = Vec::with_capacity(self.residual_order.len());
 
-        self.residual_blocks.iter().for_each(|(_, residual_block)| {
+        self.residual_order.iter().for_each(|residual_id| {
+            let residual_block = self.residual_blocks[*residual_id].as_ref().unwrap();
+            residual_parameter_indices.push(
+                residual_block
+                    .variable_key_list
+                    .iter()
+                    .map(|name| parameter_indices[name.as_str()])
+                    .collect(),
+            );
             let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
             let mut count_variable_local_idx: usize = 0;
             for var_key in &residual_block.variable_key_list {
@@ -77,7 +108,8 @@ impl Problem {
                             }
                             let global_row_idx = residual_block.residual_row_start_idx + row_idx;
                             let global_col_idx = variable_global_idx + current_var_col_offset;
-                            indices.push(Pair::new(global_row_idx, global_col_idx));
+                            columns[global_col_idx].push((global_row_idx, source_index));
+                            source_index += 1;
                             current_var_col_offset += 1;
                         }
                     }
@@ -85,16 +117,37 @@ impl Problem {
             }
         });
         let start = std::time::Instant::now();
-        let (s, o) = SymbolicSparseColMat::try_new_from_indices(
+        let mut col_ptr = Vec::with_capacity(total_variable_dimension + 1);
+        let mut row_idx = Vec::with_capacity(source_index);
+        let mut value_scatter = Vec::with_capacity(source_index);
+        col_ptr.push(0);
+        for entries in &mut columns {
+            if entries.windows(2).any(|window| window[0].0 > window[1].0) {
+                entries.sort_unstable_by_key(|entry| entry.0);
+            }
+            let mut previous_row = None;
+            for &(row, source) in entries.iter() {
+                if previous_row != Some(row) {
+                    row_idx.push(row);
+                    previous_row = Some(row);
+                }
+                value_scatter.push((row_idx.len() - 1, source));
+            }
+            col_ptr.push(row_idx.len());
+        }
+        let pattern = SymbolicSparseColMat::new_checked(
             self.total_residual_dimension,
             total_variable_dimension,
-            &indices,
-        )
-        .unwrap();
+            col_ptr,
+            None,
+            row_idx,
+        );
         log::trace!("Built symbolic matrix: {:?}", start.elapsed());
         SymbolicStructure {
-            pattern: s,
-            order: o,
+            pattern,
+            value_scatter,
+            parameter_names,
+            residual_parameter_indices,
         }
     }
 
@@ -102,20 +155,90 @@ impl Problem {
         &self,
         parameter_blocks: &HashMap<String, ParameterBlock>,
     ) -> HashMap<String, usize> {
+        self.parameter_layout(parameter_blocks, None)
+            .expect("the default parameter layout is always valid")
+            .variable_name_to_col_idx
+    }
+
+    pub fn parameter_layout(
+        &self,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+        ordering: Option<&ParameterBlockOrdering>,
+    ) -> Result<ParameterLayout, String> {
+        let mut ordered_names = Vec::with_capacity(parameter_blocks.len());
+        if let Some(ordering) = ordering {
+            for name in ordering.ordered_elements() {
+                if !parameter_blocks.contains_key(name) {
+                    return Err(format!("ordered parameter block '{name}' does not exist"));
+                }
+                ordered_names.push(name);
+            }
+        }
+
+        let mut remaining_names: Vec<&str> = parameter_blocks
+            .keys()
+            .map(String::as_str)
+            .filter(|name| ordering.is_none_or(|ordering| !ordering.is_member(name)))
+            .collect();
+        remaining_names.sort_unstable();
+        ordered_names.extend(remaining_names);
+
         let mut count_col_idx = 0;
         let mut variable_name_to_col_idx_dict = HashMap::new();
-        parameter_blocks
-            .iter()
-            .for_each(|(param_name, param_block)| {
-                variable_name_to_col_idx_dict.insert(param_name.to_owned(), count_col_idx);
-                let effective_size = if param_block.manifold.is_some() {
-                    param_block.tangent_size()
-                } else {
-                    param_block.tangent_size() - param_block.fixed_variables.len()
-                };
-                count_col_idx += effective_size;
-            });
-        variable_name_to_col_idx_dict
+        let mut parameter_block_sizes = Vec::new();
+        let first_group = ordering.and_then(ParameterBlockOrdering::min_nonempty_group);
+        let mut schur_elimination_dimension = 0;
+        let mut schur_elimination_block_sizes = Vec::new();
+        let mut schur_retained_block_sizes = Vec::new();
+        for name in ordered_names {
+            let parameter_block = &parameter_blocks[name];
+            let effective_size = parameter_block.effective_tangent_size();
+            variable_name_to_col_idx_dict.insert(name.to_owned(), count_col_idx);
+            count_col_idx += effective_size;
+            if effective_size > 0 {
+                parameter_block_sizes.push(effective_size);
+            }
+            let is_eliminated = first_group.is_some()
+                && ordering.and_then(|ordering| ordering.group_id(name)) == first_group;
+            if is_eliminated {
+                schur_elimination_dimension += effective_size;
+                if effective_size > 0 {
+                    schur_elimination_block_sizes.push(effective_size);
+                }
+            } else if effective_size > 0 {
+                schur_retained_block_sizes.push(effective_size);
+            }
+        }
+
+        if let (Some(ordering), Some(first_group)) = (ordering, first_group) {
+            for residual_block in self.residual_blocks.iter().flatten() {
+                let eliminated_blocks = residual_block
+                    .variable_key_list
+                    .iter()
+                    .filter(|name| ordering.group_id(name) == Some(first_group))
+                    .filter(|name| {
+                        parameter_blocks
+                            .get(*name)
+                            .is_some_and(|block| block.effective_tangent_size() > 0)
+                    })
+                    .count();
+                if eliminated_blocks > 1 {
+                    return Err(format!(
+                        "Schur elimination group is not independent in residual block {}",
+                        residual_block.residual_block_id
+                    ));
+                }
+            }
+        }
+
+        Ok(ParameterLayout {
+            variable_name_to_col_idx: variable_name_to_col_idx_dict,
+            total_dimension: count_col_idx,
+            parameter_block_sizes,
+            schur_elimination_dimension,
+            schur_elimination_block_sizes,
+            schur_retained_block_sizes,
+        })
     }
     pub fn add_residual_block(
         &mut self,
@@ -124,21 +247,20 @@ impl Problem {
         factor: Box<dyn factors::FactorImpl + Send>,
         loss_func: Option<Box<dyn loss_functions::Loss + Send>>,
     ) -> ResidualBlockId {
-        self.residual_blocks.insert(
-            self.residual_id_count,
-            residual_block::ResidualBlock::new(
+        self.residual_blocks
+            .push(Some(residual_block::ResidualBlock::new(
                 self.residual_id_count,
                 dim_residual,
                 self.total_residual_dimension,
                 variable_key_size_list,
                 factor,
                 loss_func,
-            ),
-        );
+            )));
         let block_id = self.residual_id_count;
         self.residual_id_count += 1;
 
         self.total_residual_dimension += dim_residual;
+        self.residual_order.push(block_id);
 
         block_id
     }
@@ -146,12 +268,41 @@ impl Problem {
         &mut self,
         block_id: ResidualBlockId,
     ) -> Option<residual_block::ResidualBlock> {
-        if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
+        if let Some(residual_block) = self
+            .residual_blocks
+            .get_mut(block_id)
+            .and_then(Option::take)
+        {
             self.total_residual_dimension -= residual_block.dim_residual;
+            self.residual_order
+                .retain(|&residual_id| residual_id != block_id);
+            let mut row_start = 0;
+            for residual_id in &self.residual_order {
+                let block = self.residual_blocks[*residual_id].as_mut().unwrap();
+                block.residual_row_start_idx = row_start;
+                row_start += block.dim_residual;
+            }
             Some(residual_block)
         } else {
             None
         }
+    }
+    pub fn num_residual_blocks(&self) -> usize {
+        self.residual_order.len()
+    }
+    pub fn num_residuals(&self) -> usize {
+        self.total_residual_dimension
+    }
+    pub fn has_residual_block(&self, block_id: ResidualBlockId) -> bool {
+        self.residual_blocks
+            .get(block_id)
+            .is_some_and(Option::is_some)
+    }
+    pub fn residual_block_variable_keys(&self, block_id: ResidualBlockId) -> Option<&[String]> {
+        self.residual_blocks
+            .get(block_id)
+            .and_then(Option::as_ref)
+            .map(|block| block.variable_key_list.as_slice())
     }
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
         if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
@@ -208,7 +359,7 @@ impl Problem {
                     p_block.variable_bounds = bounds.clone();
                 }
                 if let Some(manifold) = self.variable_manifold.get(k) {
-                    p_block.manifold = Some(manifold.clone())
+                    p_block.set_manifold(manifold.clone());
                 }
 
                 (k.to_owned(), p_block)
@@ -222,24 +373,66 @@ impl Problem {
         parameter_blocks: &HashMap<String, ParameterBlock>,
         with_loss_fn: bool,
     ) -> faer::Mat<f64> {
-        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
-            self.total_residual_dimension,
-        )));
-        self.residual_blocks
+        let residual_blocks: Vec<_> = self
+            .residual_order
+            .iter()
+            .map(|residual_id| self.residual_blocks[*residual_id].as_ref().unwrap())
+            .collect();
+        let residuals: Vec<_> = residual_blocks
             .par_iter()
-            .for_each(|(_, residual_block)| {
-                self.compute_residual_impl(
-                    residual_block,
-                    parameter_blocks,
-                    &total_residual,
-                    with_loss_fn,
+            .map(|residual_block| {
+                (
+                    residual_block.residual_row_start_idx,
+                    self.compute_residual_impl(residual_block, parameter_blocks, with_loss_fn),
                 )
-            });
-        let total_residual = Arc::try_unwrap(total_residual)
-            .unwrap()
-            .into_inner()
-            .unwrap();
+            })
+            .collect();
+        let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
+        for (row_start, residual) in residuals {
+            total_residual
+                .rows_mut(row_start, residual.len())
+                .copy_from(&residual);
+        }
 
+        total_residual.view_range(.., ..).into_faer().to_owned()
+    }
+
+    pub fn compute_residuals_with_structure(
+        &self,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+        symbolic_structure: &SymbolicStructure,
+        with_loss_fn: bool,
+    ) -> faer::Mat<f64> {
+        let parameter_refs: Vec<_> = symbolic_structure
+            .parameter_names
+            .iter()
+            .map(|name| &parameter_blocks[name])
+            .collect();
+        let residual_blocks: Vec<_> = self
+            .residual_order
+            .iter()
+            .map(|residual_id| self.residual_blocks[*residual_id].as_ref().unwrap())
+            .collect();
+        let residuals: Vec<_> = residual_blocks
+            .par_iter()
+            .zip(symbolic_structure.residual_parameter_indices.par_iter())
+            .map(|(residual_block, parameter_indices)| {
+                let params: Vec<_> = parameter_indices
+                    .iter()
+                    .map(|&index| parameter_refs[index])
+                    .collect();
+                (
+                    residual_block.residual_row_start_idx,
+                    residual_block.residual(&params, with_loss_fn),
+                )
+            })
+            .collect();
+        let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
+        for (row_start, residual) in residuals {
+            total_residual
+                .rows_mut(row_start, residual.len())
+                .copy_from(&residual);
+        }
         total_residual.view_range(.., ..).into_faer().to_owned()
     }
 
@@ -249,37 +442,46 @@ impl Problem {
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
         symbolic_structure: &SymbolicStructure,
     ) -> (faer::Mat<f64>, SparseColMat<usize, f64>) {
-        // multi
-        let total_residual = Arc::new(Mutex::new(na::DVector::<f64>::zeros(
-            self.total_residual_dimension,
-        )));
-
-        let jacobian_lists: Vec<JacobianValue> = self
-            .residual_blocks
+        let residual_blocks: Vec<_> = self
+            .residual_order
+            .iter()
+            .map(|residual_id| self.residual_blocks[*residual_id].as_ref().unwrap())
+            .collect();
+        let parameter_refs: Vec<_> = symbolic_structure
+            .parameter_names
+            .iter()
+            .map(|name| &parameter_blocks[name])
+            .collect();
+        let evaluations: Vec<_> = residual_blocks
             .par_iter()
-            .map(|(_, residual_block)| {
+            .zip(symbolic_structure.residual_parameter_indices.par_iter())
+            .map(|(residual_block, parameter_indices)| {
+                let params: Vec<_> = parameter_indices
+                    .iter()
+                    .map(|&index| parameter_refs[index])
+                    .collect();
                 self.compute_residual_and_jacobian_impl(
                     residual_block,
-                    parameter_blocks,
+                    &params,
                     variable_name_to_col_idx_dict,
-                    &total_residual,
                 )
             })
-            .flatten()
             .collect();
-
-        let total_residual = Arc::try_unwrap(total_residual)
-            .unwrap()
-            .into_inner()
-            .unwrap();
+        let mut total_residual = na::DVector::<f64>::zeros(self.total_residual_dimension);
+        let mut jacobian_lists = Vec::new();
+        for (row_start, residual, jacobian_values) in evaluations {
+            total_residual
+                .rows_mut(row_start, residual.len())
+                .copy_from(&residual);
+            jacobian_lists.extend(jacobian_values);
+        }
 
         let residual_faer = total_residual.view_range(.., ..).into_faer().to_owned();
-        let jacobian_faer = SparseColMat::new_from_argsort(
-            symbolic_structure.pattern.clone(),
-            &symbolic_structure.order,
-            jacobian_lists.as_slice(),
-        )
-        .unwrap();
+        let mut jacobian_values = vec![0.0; symbolic_structure.pattern.row_idx().len()];
+        for &(target, source) in &symbolic_structure.value_scatter {
+            jacobian_values[target] += jacobian_lists[source];
+        }
+        let jacobian_faer = SparseColMat::new(symbolic_structure.pattern.clone(), jacobian_values);
         (residual_faer, jacobian_faer)
     }
 
@@ -287,55 +489,30 @@ impl Problem {
         &self,
         residual_block: &crate::ResidualBlock,
         parameter_blocks: &HashMap<String, ParameterBlock>,
-        total_residual: &Arc<Mutex<na::DVector<f64>>>,
         with_loss_fn: bool,
-    ) {
+    ) -> na::DVector<f64> {
         let mut params = Vec::new();
         for var_key in &residual_block.variable_key_list {
             if let Some(param) = parameter_blocks.get(var_key) {
                 params.push(param);
             };
         }
-        let res = residual_block.residual(&params, with_loss_fn);
-
-        {
-            let mut total_residual = total_residual.lock().unwrap();
-            total_residual
-                .rows_mut(
-                    residual_block.residual_row_start_idx,
-                    residual_block.dim_residual,
-                )
-                .copy_from(&res);
-        }
+        residual_block.residual(&params, with_loss_fn)
     }
 
     fn compute_residual_and_jacobian_impl(
         &self,
         residual_block: &crate::ResidualBlock,
-        parameter_blocks: &HashMap<String, ParameterBlock>,
+        params: &[&ParameterBlock],
         variable_name_to_col_idx_dict: &HashMap<String, usize>,
-        total_residual: &Arc<Mutex<na::DVector<f64>>>,
-    ) -> Vec<JacobianValue> {
-        let mut params = Vec::new();
+    ) -> (usize, na::DVector<f64>, Vec<JacobianValue>) {
         let mut variable_local_idx_size_list = Vec::<(usize, usize)>::new();
         let mut count_variable_local_idx: usize = 0;
-        for var_key in &residual_block.variable_key_list {
-            if let Some(param) = parameter_blocks.get(var_key) {
-                params.push(param);
-                variable_local_idx_size_list.push((count_variable_local_idx, param.tangent_size()));
-                count_variable_local_idx += param.tangent_size();
-            };
+        for param in params {
+            variable_local_idx_size_list.push((count_variable_local_idx, param.tangent_size()));
+            count_variable_local_idx += param.tangent_size();
         }
-        let (res, jac) = residual_block.residual_and_jacobian(&params);
-        {
-            let mut total_residual = total_residual.lock().unwrap();
-            total_residual
-                .rows_mut(
-                    residual_block.residual_row_start_idx,
-                    residual_block.dim_residual,
-                )
-                .copy_from(&res);
-        }
+        let (res, jac) = residual_block.residual_and_jacobian(params);
 
         let mut local_jacobian_list = Vec::new();
 
@@ -372,6 +549,10 @@ impl Problem {
             }
         }
 
-        local_jacobian_list
+        (
+            residual_block.residual_row_start_idx,
+            res,
+            local_jacobian_list,
+        )
     }
 }

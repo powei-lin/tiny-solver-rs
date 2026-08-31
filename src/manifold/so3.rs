@@ -1,8 +1,8 @@
-use std::{num::NonZero, ops::Mul};
+use std::ops::Mul;
 
 use nalgebra as na;
 
-use super::{AutoDiffManifold, Manifold};
+pub use super::quaternion::EigenQuaternionManifold as QuaternionManifold;
 
 pub struct SO3<T: na::RealField> {
     qx: T,
@@ -179,45 +179,5 @@ impl<T: na::RealField> Mul<na::VectorView3<'_, T>> for &SO3<T> {
         let inv = self.inverse();
         let v_rot: SO3<T> = (self * &qv) * inv;
         na::Vector3::new(v_rot.qx, v_rot.qy, v_rot.qz)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct QuaternionManifold;
-impl<T: na::RealField> AutoDiffManifold<T> for QuaternionManifold {
-    fn plus(
-        &self,
-        x: nalgebra::DVectorView<T>,
-        delta: nalgebra::DVectorView<T>,
-    ) -> nalgebra::DVector<T> {
-        let d: SO3<T> = SO3::exp(delta);
-        let x_s03: SO3<T> = SO3::from_xyzw(x[0].clone(), x[1].clone(), x[2].clone(), x[3].clone());
-        let x_plus = x_s03 * d;
-        na::dvector![
-            x_plus.qx.clone(),
-            x_plus.qy.clone(),
-            x_plus.qz.clone(),
-            x_plus.qw.clone(),
-        ]
-    }
-
-    fn minus(
-        &self,
-        y: nalgebra::DVectorView<T>,
-        x: nalgebra::DVectorView<T>,
-    ) -> nalgebra::DVector<T> {
-        let y_so3 = SO3::from_vec(y);
-        let x_so3_inv = SO3::from_vec(x).inverse();
-        let x_inv_y_log = (x_so3_inv * y_so3).log();
-        na::dvector![
-            x_inv_y_log[0].clone(),
-            x_inv_y_log[1].clone(),
-            x_inv_y_log[2].clone()
-        ]
-    }
-}
-impl Manifold for QuaternionManifold {
-    fn tangent_size(&self) -> NonZero<usize> {
-        NonZero::new(3).unwrap()
     }
 }

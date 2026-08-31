@@ -26,6 +26,11 @@ impl ParameterBlock {
         }
     }
     pub fn set_manifold(&mut self, manifold: Arc<dyn Manifold + Sync + Send>) {
+        assert_eq!(
+            manifold.ambient_size(),
+            self.ambient_size(),
+            "manifold ambient size must match the parameter block size"
+        );
         self.manifold = Some(manifold);
     }
     pub fn ambient_size(&self) -> usize {
@@ -33,9 +38,16 @@ impl ParameterBlock {
     }
     pub fn tangent_size(&self) -> usize {
         if let Some(m) = &self.manifold {
-            m.tangent_size().get()
+            m.tangent_size()
         } else {
             self.ambient_size()
+        }
+    }
+    pub fn effective_tangent_size(&self) -> usize {
+        if self.manifold.is_some() {
+            self.tangent_size()
+        } else {
+            self.tangent_size() - self.fixed_variables.len()
         }
     }
     pub fn plus_f64(&self, dx: na::DVectorView<f64>) -> na::DVector<f64> {

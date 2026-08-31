@@ -1,10 +1,21 @@
-use std::num::NonZero;
-
 use nalgebra as na;
 use num_dual::DualDVec64;
 
+pub mod euclidean;
+pub mod line;
+pub mod product;
+pub mod quaternion;
 pub mod se3;
 pub mod so3;
+pub mod sphere;
+pub mod subset;
+
+pub use euclidean::EuclideanManifold;
+pub use line::LineManifold;
+pub use product::ProductManifold;
+pub use quaternion::{EigenQuaternionManifold, QuaternionManifold};
+pub use sphere::SphereManifold;
+pub use subset::SubsetManifold;
 
 pub trait AutoDiffManifold<T: na::RealField> {
     fn plus(&self, x: na::DVectorView<T>, delta: na::DVectorView<T>) -> na::DVector<T>;
@@ -12,7 +23,8 @@ pub trait AutoDiffManifold<T: na::RealField> {
 }
 
 pub trait Manifold: AutoDiffManifold<f64> + AutoDiffManifold<num_dual::DualDVec64> {
-    fn tangent_size(&self) -> NonZero<usize>;
+    fn ambient_size(&self) -> usize;
+    fn tangent_size(&self) -> usize;
     fn plus_f64(&self, x: na::DVectorView<f64>, delta: na::DVectorView<f64>) -> na::DVector<f64> {
         self.plus(x, delta)
     }

@@ -4,17 +4,19 @@ use std::ops::Mul;
 use faer::linalg::solvers::Solve;
 use faer::sparse::linalg::solvers;
 
-use super::sparse::SparseLinearSolver;
+use super::sparse::{SparseLinearSolver, SparsePattern};
 
 // #[pyclass]
 #[derive(Debug, Clone)]
 pub struct SparseCholeskySolver {
+    pattern: Option<SparsePattern>,
     symbolic_pattern: Option<solvers::SymbolicLlt<usize>>,
 }
 
 impl SparseCholeskySolver {
     pub fn new() -> Self {
         SparseCholeskySolver {
+            pattern: None,
             symbolic_pattern: None,
         }
     }
@@ -46,13 +48,14 @@ impl SparseLinearSolver for SparseCholeskySolver {
         jtr: &faer::Mat<f64>,
         jtj: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>> {
-        // initialize the pattern
-        if self.symbolic_pattern.is_none() {
+        let pattern = SparsePattern::new(jtj);
+        if self.pattern.as_ref() != Some(&pattern) {
             self.symbolic_pattern =
-                Some(solvers::SymbolicLlt::try_new(jtj.symbolic(), faer::Side::Lower).unwrap());
+                solvers::SymbolicLlt::try_new(jtj.symbolic(), faer::Side::Lower).ok();
+            self.pattern = self.symbolic_pattern.as_ref().map(|_| pattern);
         }
 
-        let sym = self.symbolic_pattern.as_ref().unwrap();
+        let sym = self.symbolic_pattern.as_ref()?;
         if let Ok(cholesky) =
             solvers::Llt::try_new_with_symbolic(sym.clone(), jtj.as_ref(), faer::Side::Lower)
         {

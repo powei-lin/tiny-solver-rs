@@ -19,7 +19,9 @@ cargo add tiny-solver
 ## Current Features
 
 - [x] Automatic Derivatives using [num-dual](https://github.com/itt-ustutt/num-dual)
-- [x] Sparse QR, Sparse Cholesky using [faer](https://github.com/sarah-quinones/faer-rs)
+- [x] Dense/Sparse QR and Cholesky using [faer](https://github.com/sarah-quinones/faer-rs)
+- [x] Dense, Sparse, and Iterative Schur solvers for bundle adjustment
+- [x] CGNR with Identity and block-Jacobi preconditioners
 - [x] GaussNewtonOptimizer
 - [x] LevenbergMarquardtOptimizer
 - [x] Multithreading jacobian
@@ -36,6 +38,17 @@ On m3 macbook air
 | m3500   | 128.3ms     | 130.7ms | 123.6 ms |
 
 It's not extremely optimized, but it's easy to install and use.
+
+### BAL bundle adjustment
+
+The P4 solver benchmark uses the bundled 16-camera BAL problem:
+
+```sh
+RAYON_NUM_THREADS=10 cargo run --release --example bal_benchmark -- \
+    ceres-solver/data/problem-16-22106-pre.txt dense_schur 5 jacobi
+```
+
+See [the BAL benchmark report](docs/p4_bal_benchmark.md) for the reproducible Ceres comparison, numerical results, and remaining performance gap.
 
 ## Usage
 Rust 

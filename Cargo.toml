@@ -32,6 +32,10 @@ name = "m3500_benchmark"
 path = "examples/m3500_benchmark.rs"
 
 [[example]]
+name = "bal_benchmark"
+path = "examples/bal_benchmark.rs"
+
+[[example]]
 name = "sphere2500"
 
 [[example]]

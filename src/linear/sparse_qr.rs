@@ -1,16 +1,18 @@
-use super::sparse::SparseLinearSolver;
-use faer::linalg::solvers::SolveLstsqCore;
+use super::sparse::{SparseLinearSolver, SparsePattern};
+use faer::linalg::solvers::SolveLstsq;
 // use faer::prelude::{SpSolver, SpSolverLstsq};
 use faer::sparse::linalg::solvers;
 
 #[derive(Debug, Clone)]
 pub struct SparseQRSolver {
+    pattern: Option<SparsePattern>,
     symbolic_pattern: Option<solvers::SymbolicQr<usize>>,
 }
 
 impl SparseQRSolver {
     pub fn new() -> Self {
         SparseQRSolver {
+            pattern: None,
             symbolic_pattern: None,
         }
     }
@@ -26,16 +28,15 @@ impl SparseLinearSolver for SparseQRSolver {
         residuals: &faer::Mat<f64>,
         jacobians: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>> {
-        if self.symbolic_pattern.is_none() {
-            self.symbolic_pattern =
-                Some(solvers::SymbolicQr::try_new(jacobians.symbolic()).unwrap());
+        let pattern = SparsePattern::new(jacobians);
+        if self.pattern.as_ref() != Some(&pattern) {
+            self.symbolic_pattern = solvers::SymbolicQr::try_new(jacobians.symbolic()).ok();
+            self.pattern = self.symbolic_pattern.as_ref().map(|_| pattern);
         }
 
-        let sym = self.symbolic_pattern.as_ref().unwrap();
+        let sym = self.symbolic_pattern.as_ref()?;
         if let Ok(qr) = solvers::Qr::try_new_with_symbolic(sym.clone(), jacobians.as_ref()) {
-            let mut minus_residuals = -residuals;
-            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, minus_residuals.as_mut());
-            Some(minus_residuals)
+            Some(qr.solve_lstsq(-residuals))
         } else {
             None
         }
@@ -46,15 +47,15 @@ impl SparseLinearSolver for SparseQRSolver {
         jtr: &faer::Mat<f64>,
         jtj: &faer::sparse::SparseColMat<usize, f64>,
     ) -> Option<faer::Mat<f64>> {
-        if self.symbolic_pattern.is_none() {
-            self.symbolic_pattern = Some(solvers::SymbolicQr::try_new(jtj.symbolic()).unwrap());
+        let pattern = SparsePattern::new(jtj);
+        if self.pattern.as_ref() != Some(&pattern) {
+            self.symbolic_pattern = solvers::SymbolicQr::try_new(jtj.symbolic()).ok();
+            self.pattern = self.symbolic_pattern.as_ref().map(|_| pattern);
         }
 
-        let sym = self.symbolic_pattern.as_ref().unwrap();
+        let sym = self.symbolic_pattern.as_ref()?;
         if let Ok(qr) = solvers::Qr::try_new_with_symbolic(sym.clone(), jtj.as_ref()) {
-            let mut minus_jtr = -jtr;
-            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, minus_jtr.as_mut());
-            Some(minus_jtr)
+            Some(qr.solve_lstsq(jtr))
         } else {
             None
         }

@@ -1,5 +1,17 @@
+pub mod cgnr;
+mod conjugate_gradient;
+pub mod dense;
+pub mod iterative_schur;
+pub mod ordering;
+pub mod schur;
 pub mod sparse;
 pub mod sparse_cholesky;
 pub mod sparse_qr;
+pub use cgnr::*;
+pub use dense::*;
+pub use iterative_schur::*;
+pub use ordering::*;
+pub use schur::*;
+pub use sparse::*;
 pub use sparse_cholesky::*;
 pub use sparse_qr::*;

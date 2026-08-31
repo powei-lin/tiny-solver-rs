@@ -3,7 +3,6 @@ mod tests {
     use std::collections::HashMap;
 
     use nalgebra as na;
-    use tiny_solver;
 
     #[test]
     fn new_problem() {
@@ -11,6 +10,65 @@ mod tests {
         assert_eq!(problem.total_residual_dimension, 0);
         assert_eq!(problem.fixed_variable_indexes.len(), 0);
         assert_eq!(problem.variable_bounds.len(), 0);
+    }
+
+    #[test]
+    fn parameter_layout_follows_groups_and_is_deterministic() {
+        let problem = tiny_solver::Problem::new();
+        let initial_values = HashMap::from([
+            ("unlisted".to_string(), na::dvector![0.0]),
+            ("camera".to_string(), na::dvector![0.0, 0.0, 0.0]),
+            ("point".to_string(), na::dvector![0.0, 0.0]),
+        ]);
+        let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
+        let mut ordering = tiny_solver::ParameterBlockOrdering::new();
+        ordering.add_element_to_group("camera", 1);
+        ordering.add_element_to_group("point", 0);
+
+        let layout = problem
+            .parameter_layout(&parameter_blocks, Some(&ordering))
+            .unwrap();
+
+        assert_eq!(layout.variable_name_to_col_idx["point"], 0);
+        assert_eq!(layout.variable_name_to_col_idx["camera"], 2);
+        assert_eq!(layout.variable_name_to_col_idx["unlisted"], 5);
+        assert_eq!(layout.schur_elimination_dimension, 2);
+        assert_eq!(layout.schur_elimination_block_sizes, [2]);
+        assert_eq!(layout.schur_retained_block_sizes, [3, 1]);
+        assert_eq!(layout.parameter_block_sizes, [2, 3, 1]);
+        assert_eq!(layout.total_dimension, 6);
+
+        let default_layout = problem.parameter_layout(&parameter_blocks, None).unwrap();
+        assert_eq!(default_layout.schur_elimination_dimension, 0);
+        assert!(default_layout.schur_elimination_block_sizes.is_empty());
+        assert_eq!(default_layout.schur_retained_block_sizes, [3, 2, 1]);
+    }
+
+    #[test]
+    fn parameter_layout_rejects_non_independent_schur_group() {
+        let mut problem = tiny_solver::Problem::new();
+        problem.add_residual_block(
+            1,
+            &["point_a", "point_b"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![0.0],
+            }),
+            None,
+        );
+        let initial_values = HashMap::from([
+            ("point_a".to_string(), na::dvector![0.0]),
+            ("point_b".to_string(), na::dvector![0.0]),
+        ]);
+        let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
+        let mut ordering = tiny_solver::ParameterBlockOrdering::new();
+        ordering.add_element_to_group("point_a", 0);
+        ordering.add_element_to_group("point_b", 0);
+
+        let error = problem
+            .parameter_layout(&parameter_blocks, Some(&ordering))
+            .unwrap_err();
+
+        assert!(error.contains("not independent"));
     }
 
     #[test]
@@ -61,6 +119,43 @@ mod tests {
         block = problem.remove_residual_block(block_id);
         assert!(block.is_none());
         assert_eq!(problem.total_residual_dimension, 0);
+    }
+
+    #[test]
+    fn removing_a_residual_block_reindexes_remaining_rows() {
+        let mut problem = tiny_solver::Problem::new();
+        let first_id = problem.add_residual_block(
+            1,
+            &["x"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![1.0],
+            }),
+            None,
+        );
+        let second_id = problem.add_residual_block(
+            1,
+            &["y"],
+            Box::new(tiny_solver::factors::PriorFactor {
+                v: na::dvector![2.0],
+            }),
+            None,
+        );
+
+        problem.remove_residual_block(first_id).unwrap();
+
+        assert_eq!(problem.num_residual_blocks(), 1);
+        assert_eq!(problem.num_residuals(), 1);
+        assert!(!problem.has_residual_block(first_id));
+        assert!(problem.has_residual_block(second_id));
+        assert_eq!(
+            problem.residual_block_variable_keys(second_id).unwrap(),
+            &["y"]
+        );
+
+        let initial_values = HashMap::from([("y".to_string(), na::dvector![5.0])]);
+        let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
+        let residuals = problem.compute_residuals(&parameter_blocks, true);
+        assert_eq!(residuals[(0, 0)], 3.0);
     }
 
     #[test]
