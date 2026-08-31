@@ -2,7 +2,6 @@ use log::trace;
 use std::ops::Mul;
 use std::{collections::HashMap, time::Instant};
 
-use faer::sparse::Triplet;
 use faer_ext::IntoNalgebra;
 
 use crate::common::{
@@ -11,6 +10,9 @@ use crate::common::{
 };
 use crate::linear;
 use crate::optimizer;
+use crate::optimizer::trust_region::{
+    DoglegStrategy, LevenbergMarquardtStrategy, TrustRegionStrategy, TrustRegionStrategyType,
+};
 use crate::parameter_block::ParameterBlock;
 use crate::sparse::LinearSolverType;
 use crate::sparse::SparseLinearSolver;
@@ -18,6 +20,7 @@ use crate::sparse::SparseLinearSolver;
 const DEFAULT_MIN_DIAGONAL: f64 = 1e-6;
 const DEFAULT_MAX_DIAGONAL: f64 = 1e32;
 const DEFAULT_INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
+const DEFAULT_MAX_TRUST_REGION_RADIUS: f64 = 1e16;
 
 #[derive(Debug)]
 pub struct LevenbergMarquardtOptimizer {
@@ -25,6 +28,8 @@ pub struct LevenbergMarquardtOptimizer {
     max_diagonal: f64,
     initial_trust_region_radius: f64,
 }
+
+pub type TrustRegionOptimizer = LevenbergMarquardtOptimizer;
 
 impl LevenbergMarquardtOptimizer {
     pub fn new(min_diagonal: f64, max_diagonal: f64, initial_trust_region_radius: f64) -> Self {
@@ -106,6 +111,18 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 total_start.elapsed(),
             );
         }
+        if matches!(
+            opt_option.trust_region_strategy_type,
+            TrustRegionStrategyType::Dogleg(_)
+        ) && matches!(
+            opt_option.linear_solver_type,
+            LinearSolverType::IterativeSchur | LinearSolverType::Cgnr
+        ) {
+            return configuration_failure(
+                "Dogleg requires an exact factorization-based linear solver",
+                total_start.elapsed(),
+            );
+        }
 
         let mut linear_solver: Box<dyn SparseLinearSolver> = match opt_option.linear_solver_type {
             LinearSolverType::DenseQR => Box::new(linear::DenseQRSolver::new()),
@@ -148,20 +165,30 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             LinearSolverType::SparseCholesky => Box::new(linear::SparseCholeskySolver::new()),
             LinearSolverType::SparseQR => Box::new(linear::SparseQRSolver::new()),
         };
-
-        // On the first iteration, we'll generate a diagonal matrix of the jacobian.
-        // Its shape will be (total_variable_dimension, total_variable_dimension).
-        // With LM, rather than solving A * dx = b for dx, we solve for (A + lambda * diag(A)) dx = b.
-        let mut jacobi_scaling_diagonal: Option<faer::sparse::SparseColMat<usize, f64>> = None;
+        let mut trust_region_strategy: Box<dyn TrustRegionStrategy> =
+            match opt_option.trust_region_strategy_type {
+                TrustRegionStrategyType::LevenbergMarquardt => {
+                    Box::new(LevenbergMarquardtStrategy::new(
+                        self.initial_trust_region_radius,
+                        DEFAULT_MAX_TRUST_REGION_RADIUS,
+                        self.min_diagonal,
+                        self.max_diagonal,
+                    ))
+                }
+                TrustRegionStrategyType::Dogleg(dogleg_type) => Box::new(DoglegStrategy::new(
+                    dogleg_type,
+                    self.initial_trust_region_radius,
+                    DEFAULT_MAX_TRUST_REGION_RADIUS,
+                    self.min_diagonal,
+                    self.max_diagonal,
+                )),
+            };
 
         let symbolic_structure = problem.build_symbolic_structure(
             &parameter_blocks,
             total_variable_dimension,
             &variable_name_to_col_idx_dict,
         );
-
-        // Damping parameter (a.k.a lambda / Marquardt parameter)
-        let mut u = 1.0 / self.initial_trust_region_radius;
 
         if let Some(callback) = &opt_option.evaluation_callback {
             callback.prepare_for_evaluation(false, true);
@@ -181,34 +208,11 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
             if let Some(callback) = &opt_option.evaluation_callback {
                 callback.prepare_for_evaluation(true, false);
             }
-            let (residuals, mut jac) = problem.compute_residual_and_jacobian(
+            let (residuals, jac) = problem.compute_residual_and_jacobian(
                 &parameter_blocks,
                 &variable_name_to_col_idx_dict,
                 &symbolic_structure,
             );
-
-            if i == 0 {
-                // On the first iteration, generate the diagonal of the jacobian.
-                let cols = jac.shape().1;
-                let jacobi_scaling_vec: Vec<Triplet<usize, usize, f64>> = (0..cols)
-                    .map(|c| {
-                        let v = jac.val_of_col(c).iter().map(|&i| i * i).sum::<f64>().sqrt();
-                        Triplet::new(c, c, 1.0 / (1.0 + v))
-                    })
-                    .collect();
-
-                jacobi_scaling_diagonal = Some(
-                    faer::sparse::SparseColMat::<usize, f64>::try_new_from_triplets(
-                        cols,
-                        cols,
-                        &jacobi_scaling_vec,
-                    )
-                    .unwrap(),
-                );
-            }
-
-            // Scale the current jacobian by the diagonal matrix
-            jac = jac * jacobi_scaling_diagonal.as_ref().unwrap();
 
             // J^T * -r = Matrix of shape (total_variable_dimension, 1)
             let jtr = jac.as_ref().transpose().mul(-&residuals);
@@ -218,24 +222,12 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 .iter()
                 .fold(0.0_f64, |max_value, value| max_value.max(value.abs()));
 
-            let regularization: Vec<_> = (0..total_variable_dimension)
-                .map(|column| {
-                    let diagonal = jac
-                        .val_of_col(column)
-                        .iter()
-                        .map(|value| value * value)
-                        .sum::<f64>();
-                    u * diagonal.max(self.min_diagonal).min(self.max_diagonal)
-                })
-                .collect();
-
             let step_norm;
             let mut step_is_successful = false;
-            if let Some(lm_step) =
-                linear_solver.solve_regularized(&residuals, &jac, &regularization)
+            if let Some(trust_region_step) =
+                trust_region_strategy.compute_step(&residuals, &jac, linear_solver.as_mut())
             {
-                let dx = jacobi_scaling_diagonal.as_ref().unwrap() * &lm_step;
-                let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+                let dx_na = trust_region_step.step;
                 step_norm = dx_na.norm();
 
                 let mut new_param_blocks = parameter_blocks.clone();
@@ -261,25 +253,21 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 // in error if the problem were linear.
                 let actual_residual_change = residuals.as_ref().squared_norm_l2() - new_error;
                 trace!("actual_residual_change {}", actual_residual_change);
-                let jacobian_step = jac.as_ref().mul(lm_step.as_ref());
+                let step_faer = faer::Mat::from_fn(dx_na.len(), 1, |row, _| dx_na[row]);
+                let jacobian_step = jac.as_ref().mul(step_faer.as_ref());
                 let normal_step = jac.as_ref().transpose().mul(jacobian_step.as_ref());
                 let linear_residual_change: faer::Mat<f64> =
-                    lm_step.transpose().mul(2.0 * &jtr - normal_step);
+                    step_faer.transpose().mul(2.0 * &jtr - normal_step);
                 let rho = actual_residual_change / linear_residual_change[(0, 0)];
 
-                if rho > 0.0 {
+                if rho > 0.0 && rho.is_finite() {
                     // The linear model appears to be fitting, so accept (x + dx) as the new x.
                     parameter_blocks = new_param_blocks;
                     current_error = new_error;
                     step_is_successful = true;
-
-                    // Increase the trust region by reducing u
-                    let tmp = 2.0 * rho - 1.0;
-                    u *= (1.0_f64 / 3.0).max(1.0 - tmp * tmp * tmp);
+                    trust_region_strategy.step_accepted(rho);
                 } else {
-                    // If there's too much divergence, reduce the trust region and try again with the same parameters.
-                    u *= 2.0;
-                    trace!("u {}", u);
+                    trust_region_strategy.step_rejected();
                 }
             } else {
                 log::debug!("solve ax=b failed");
@@ -296,7 +284,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 cost_change: last_err - current_error,
                 gradient_max_norm,
                 step_norm,
-                trust_region_radius: Some(1.0 / u),
+                trust_region_radius: Some(trust_region_strategy.radius()),
                 step_is_successful,
                 iteration_time: iteration_start.elapsed(),
             };

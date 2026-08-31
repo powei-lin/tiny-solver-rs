@@ -7,7 +7,7 @@ use nalgebra as na;
 use crate::parameter_block::ParameterBlock;
 use crate::problem;
 use crate::sparse::LinearSolverType;
-use crate::{ParameterBlockOrdering, PreconditionerType};
+use crate::{ParameterBlockOrdering, PreconditionerType, TrustRegionStrategyType};
 
 pub trait Optimizer {
     fn optimize_with_summary(
@@ -193,6 +193,7 @@ pub struct OptimizerOptions {
     pub min_linear_solver_iterations: usize,
     pub max_linear_solver_iterations: usize,
     pub eta: f64,
+    pub trust_region_strategy_type: TrustRegionStrategyType,
     pub verbosity_level: usize,
     pub min_abs_error_decrease_threshold: f64,
     pub min_rel_error_decrease_threshold: f64,
@@ -213,6 +214,7 @@ impl Default for OptimizerOptions {
             min_linear_solver_iterations: 0,
             max_linear_solver_iterations: 500,
             eta: 1e-1,
+            trust_region_strategy_type: TrustRegionStrategyType::LevenbergMarquardt,
             verbosity_level: 0,
             min_abs_error_decrease_threshold: 1e-5,
             min_rel_error_decrease_threshold: 1e-5,

@@ -4,9 +4,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tiny_solver::factors::{Factor, PriorFactor};
 use tiny_solver::{
-    CallbackReturnType, EvaluationCallback, GaussNewtonOptimizer, IterationCallback,
+    CallbackReturnType, DoglegType, EvaluationCallback, GaussNewtonOptimizer, IterationCallback,
     IterationSummary, LevenbergMarquardtOptimizer, LinearSolverType, Optimizer, OptimizerOptions,
-    ParameterBlockOrdering, PreconditionerType, Problem, TerminationType, na,
+    ParameterBlockOrdering, PreconditionerType, Problem, TerminationType, TrustRegionStrategyType,
+    na,
 };
 
 struct StopAfterFirstIteration;
@@ -51,6 +52,19 @@ struct PointCameraFactor;
 impl<T: na::RealField> Factor<T> for PointCameraFactor {
     fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
         na::dvector![params[0][0].clone() + params[1][0].clone() - T::from_f64(3.0).unwrap()]
+    }
+}
+
+struct RosenbrockFactor;
+
+impl<T: na::RealField> Factor<T> for RosenbrockFactor {
+    fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+        let x = params[0][0].clone();
+        let y = params[0][1].clone();
+        na::dvector![
+            T::from_f64(10.0).unwrap() * (y - x.clone() * x.clone()),
+            T::one() - x
+        ]
     }
 }
 
@@ -249,6 +263,59 @@ fn cgnr_rejects_schur_preconditioner() {
     assert_eq!(result.summary.termination_type, TerminationType::Failure);
     assert!(result.parameters.is_none());
     assert!(result.summary.message.contains("Identity and Jacobi"));
+}
+
+#[test]
+fn trust_region_strategies_converge_on_rosenbrock_valley() {
+    for trust_region_strategy_type in [
+        TrustRegionStrategyType::LevenbergMarquardt,
+        TrustRegionStrategyType::Dogleg(DoglegType::Traditional),
+        TrustRegionStrategyType::Dogleg(DoglegType::Subspace),
+    ] {
+        let mut problem = Problem::new();
+        problem.add_residual_block(2, &["x"], Box::new(RosenbrockFactor), None);
+        let initial_values = HashMap::from([("x".to_string(), na::dvector![-1.2, 1.0])]);
+        let options = OptimizerOptions {
+            max_iteration: 200,
+            trust_region_strategy_type,
+            min_abs_error_decrease_threshold: 1e-14,
+            min_rel_error_decrease_threshold: 1e-14,
+            min_error_threshold: 1e-14,
+            ..OptimizerOptions::default()
+        };
+        let result = LevenbergMarquardtOptimizer::new(1e-6, 1e32, 1.0).optimize_with_summary(
+            &problem,
+            &initial_values,
+            Some(options),
+        );
+        let parameters = result.parameters.unwrap_or_else(|| {
+            panic!("{trust_region_strategy_type:?}: {}", result.summary.message)
+        });
+
+        assert!((parameters["x"][0] - 1.0).abs() < 1e-6);
+        assert!((parameters["x"][1] - 1.0).abs() < 1e-6);
+        assert!(result.summary.final_cost < 1e-12);
+    }
+}
+
+#[test]
+fn dogleg_rejects_iterative_linear_solvers() {
+    let (problem, initial_values) = prior_problem();
+    let options = OptimizerOptions {
+        linear_solver_type: LinearSolverType::Cgnr,
+        trust_region_strategy_type: TrustRegionStrategyType::Dogleg(DoglegType::Traditional),
+        ..OptimizerOptions::default()
+    };
+
+    let result = LevenbergMarquardtOptimizer::default().optimize_with_summary(
+        &problem,
+        &initial_values,
+        Some(options),
+    );
+
+    assert_eq!(result.summary.termination_type, TerminationType::Failure);
+    assert!(result.parameters.is_none());
+    assert!(result.summary.message.contains("exact factorization"));
 }
 
 #[test]

@@ -24,6 +24,7 @@ cargo add tiny-solver
 - [x] CGNR with Identity and block-Jacobi preconditioners
 - [x] GaussNewtonOptimizer
 - [x] LevenbergMarquardtOptimizer
+- [x] [Traditional and Subspace Dogleg trust-region strategies](docs/p5_dogleg_validation.md)
 - [x] Multithreading jacobian
 - [x] loss functions (Huber, CauchyLoss, ArctanLoss)
 - [x] Parameter on manifold (SO3, SE3)
