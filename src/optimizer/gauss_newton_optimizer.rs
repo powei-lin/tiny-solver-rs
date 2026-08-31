@@ -286,6 +286,8 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 initial_cost,
                 final_cost: current_error,
                 iterations,
+                num_inner_iteration_steps: 0,
+                inner_iteration_time: std::time::Duration::ZERO,
                 total_time: total_start.elapsed(),
             },
         }

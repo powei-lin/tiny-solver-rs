@@ -7,7 +7,10 @@ use nalgebra as na;
 use crate::parameter_block::ParameterBlock;
 use crate::problem;
 use crate::sparse::LinearSolverType;
-use crate::{ParameterBlockOrdering, PreconditionerType, TrustRegionStrategyType};
+use crate::{
+    LineSearchDirectionType, LineSearchType, ParameterBlockOrdering, PreconditionerType,
+    TrustRegionStrategyType,
+};
 
 pub trait Optimizer {
     fn optimize_with_summary(
@@ -129,18 +132,21 @@ pub struct SolverSummary {
     pub initial_cost: f64,
     pub final_cost: f64,
     pub iterations: Vec<IterationSummary>,
+    pub num_inner_iteration_steps: usize,
+    pub inner_iteration_time: std::time::Duration,
     pub total_time: std::time::Duration,
 }
 
 impl SolverSummary {
     pub fn full_report(&self) -> String {
         format!(
-            "Termination: {:?}\nMessage: {}\nInitial cost: {:.12e}\nFinal cost: {:.12e}\nIterations: {}\nTotal time: {:?}",
+            "Termination: {:?}\nMessage: {}\nInitial cost: {:.12e}\nFinal cost: {:.12e}\nIterations: {}\nInner iteration steps: {}\nTotal time: {:?}",
             self.termination_type,
             self.message,
             self.initial_cost,
             self.final_cost,
             self.iterations.len(),
+            self.num_inner_iteration_steps,
             self.total_time
         )
     }
@@ -164,6 +170,8 @@ pub(crate) fn configuration_failure(
             initial_cost: f64::NAN,
             final_cost: f64::NAN,
             iterations: Vec::new(),
+            num_inner_iteration_steps: 0,
+            inner_iteration_time: std::time::Duration::ZERO,
             total_time,
         },
     }
@@ -194,6 +202,19 @@ pub struct OptimizerOptions {
     pub max_linear_solver_iterations: usize,
     pub eta: f64,
     pub trust_region_strategy_type: TrustRegionStrategyType,
+    pub line_search_direction_type: LineSearchDirectionType,
+    pub line_search_type: LineSearchType,
+    pub max_lbfgs_rank: usize,
+    pub min_line_search_step_size: f64,
+    pub line_search_sufficient_function_decrease: f64,
+    pub line_search_sufficient_curvature_decrease: f64,
+    pub max_line_search_step_contraction: f64,
+    pub min_line_search_step_contraction: f64,
+    pub max_num_line_search_step_size_iterations: usize,
+    pub max_line_search_step_expansion: f64,
+    pub inner_iteration_ordering: Option<ParameterBlockOrdering>,
+    pub inner_iteration_tolerance: f64,
+    pub max_num_inner_iterations: usize,
     pub verbosity_level: usize,
     pub min_abs_error_decrease_threshold: f64,
     pub min_rel_error_decrease_threshold: f64,
@@ -215,6 +236,19 @@ impl Default for OptimizerOptions {
             max_linear_solver_iterations: 500,
             eta: 1e-1,
             trust_region_strategy_type: TrustRegionStrategyType::LevenbergMarquardt,
+            line_search_direction_type: LineSearchDirectionType::Lbfgs,
+            line_search_type: LineSearchType::Wolfe,
+            max_lbfgs_rank: 20,
+            min_line_search_step_size: 1e-9,
+            line_search_sufficient_function_decrease: 1e-4,
+            line_search_sufficient_curvature_decrease: 0.9,
+            max_line_search_step_contraction: 1e-3,
+            min_line_search_step_contraction: 0.6,
+            max_num_line_search_step_size_iterations: 20,
+            max_line_search_step_expansion: 10.0,
+            inner_iteration_ordering: None,
+            inner_iteration_tolerance: 1e-3,
+            max_num_inner_iterations: 10,
             verbosity_level: 0,
             min_abs_error_decrease_threshold: 1e-5,
             min_rel_error_decrease_threshold: 1e-5,

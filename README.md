@@ -25,6 +25,7 @@ cargo add tiny-solver
 - [x] GaussNewtonOptimizer
 - [x] LevenbergMarquardtOptimizer
 - [x] [Traditional and Subspace Dogleg trust-region strategies](docs/p5_dogleg_validation.md)
+- [x] [Armijo/Wolfe line search, L-BFGS, nonlinear CG, and inner iterations](docs/p6_line_search_validation.md)
 - [x] Multithreading jacobian
 - [x] loss functions (Huber, CauchyLoss, ArctanLoss)
 - [x] Parameter on manifold (SO3, SE3)

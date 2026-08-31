@@ -240,6 +240,99 @@ impl Problem {
             schur_retained_block_sizes,
         })
     }
+
+    pub(crate) fn validate_inner_iteration_ordering(
+        &self,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+        ordering: &ParameterBlockOrdering,
+    ) -> Result<(), String> {
+        for (group, elements) in ordering.groups() {
+            for element in elements {
+                if !parameter_blocks.contains_key(element) {
+                    return Err(format!(
+                        "inner-iteration parameter block '{element}' does not exist"
+                    ));
+                }
+            }
+            for residual_block in self.residual_blocks.iter().flatten() {
+                let count = residual_block
+                    .variable_key_list
+                    .iter()
+                    .filter(|name| elements.contains(name.as_str()))
+                    .count();
+                if count > 1 {
+                    return Err(format!(
+                        "inner-iteration group {group} is not independent in residual block {}",
+                        residual_block.residual_block_id
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn compute_parameter_residual_and_jacobian(
+        &self,
+        parameter_name: &str,
+        parameter_blocks: &HashMap<String, ParameterBlock>,
+    ) -> Result<(na::DVector<f64>, na::DMatrix<f64>), String> {
+        let parameter = parameter_blocks
+            .get(parameter_name)
+            .ok_or_else(|| format!("parameter block '{parameter_name}' does not exist"))?;
+        let effective_size = parameter.effective_tangent_size();
+        let matching_blocks: Vec<_> = self
+            .residual_order
+            .iter()
+            .filter_map(|residual_id| self.residual_blocks[*residual_id].as_ref())
+            .filter_map(|residual_block| {
+                residual_block
+                    .variable_key_list
+                    .iter()
+                    .position(|name| name == parameter_name)
+                    .map(|position| (residual_block, position))
+            })
+            .collect();
+        let total_rows = matching_blocks
+            .iter()
+            .map(|(residual_block, _)| residual_block.dim_residual)
+            .sum();
+        let mut residuals = na::DVector::zeros(total_rows);
+        let mut jacobian = na::DMatrix::zeros(total_rows, effective_size);
+        let mut row_start = 0;
+        for (residual_block, target_position) in matching_blocks {
+            let params: Vec<_> = residual_block
+                .variable_key_list
+                .iter()
+                .map(|name| &parameter_blocks[name])
+                .collect();
+            let (local_residuals, local_jacobian) = residual_block.residual_and_jacobian(&params);
+            residuals
+                .rows_mut(row_start, local_residuals.len())
+                .copy_from(&local_residuals);
+            let tangent_offset = params[..target_position]
+                .iter()
+                .map(|parameter| parameter.tangent_size())
+                .sum();
+            let tangent_size = params[target_position].tangent_size();
+            let source =
+                local_jacobian.view((0, tangent_offset), (local_residuals.len(), tangent_size));
+            let mut target_column = 0;
+            for source_column in 0..tangent_size {
+                if parameter.manifold.is_none()
+                    && parameter.fixed_variables.contains(&source_column)
+                {
+                    continue;
+                }
+                jacobian
+                    .view_mut((row_start, target_column), (local_residuals.len(), 1))
+                    .copy_from(&source.column(source_column));
+                target_column += 1;
+            }
+            row_start += local_residuals.len();
+        }
+        Ok((residuals, jacobian))
+    }
+
     pub fn add_residual_block(
         &mut self,
         dim_residual: usize,

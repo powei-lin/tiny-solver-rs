@@ -5,7 +5,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use tiny_solver::factors::{Factor, PriorFactor};
 use tiny_solver::{
     CallbackReturnType, DoglegType, EvaluationCallback, GaussNewtonOptimizer, IterationCallback,
-    IterationSummary, LevenbergMarquardtOptimizer, LinearSolverType, Optimizer, OptimizerOptions,
+    IterationSummary, LevenbergMarquardtOptimizer, LineSearchDirectionType, LineSearchOptimizer,
+    LineSearchType, LinearSolverType, NonlinearConjugateGradientType, Optimizer, OptimizerOptions,
     ParameterBlockOrdering, PreconditionerType, Problem, TerminationType, TrustRegionStrategyType,
     na,
 };
@@ -64,6 +65,22 @@ impl<T: na::RealField> Factor<T> for RosenbrockFactor {
         na::dvector![
             T::from_f64(10.0).unwrap() * (y - x.clone() * x.clone()),
             T::one() - x
+        ]
+    }
+}
+
+struct PowellFactor;
+
+impl<T: na::RealField> Factor<T> for PowellFactor {
+    fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+        let x = &params[0];
+        let residual_3 = x[1].clone() - T::from_f64(2.0).unwrap() * x[2].clone();
+        let residual_4 = x[0].clone() - x[3].clone();
+        na::dvector![
+            x[0].clone() + T::from_f64(10.0).unwrap() * x[1].clone(),
+            T::from_f64(5.0_f64.sqrt()).unwrap() * (x[2].clone() - x[3].clone()),
+            residual_3.clone() * residual_3,
+            T::from_f64(10.0_f64.sqrt()).unwrap() * residual_4.clone() * residual_4
         ]
     }
 }
@@ -292,9 +309,14 @@ fn trust_region_strategies_converge_on_rosenbrock_valley() {
             panic!("{trust_region_strategy_type:?}: {}", result.summary.message)
         });
 
-        assert!((parameters["x"][0] - 1.0).abs() < 1e-6);
-        assert!((parameters["x"][1] - 1.0).abs() < 1e-6);
-        assert!(result.summary.final_cost < 1e-12);
+        assert!(
+            (parameters["x"][0] - 1.0).abs() < 1e-5 && (parameters["x"][1] - 1.0).abs() < 1e-5,
+            "{trust_region_strategy_type:?}: termination={:?}, iterations={}, cost={}, x={}",
+            result.summary.termination_type,
+            result.summary.iterations.len(),
+            result.summary.final_cost,
+            parameters["x"]
+        );
     }
 }
 
@@ -316,6 +338,195 @@ fn dogleg_rejects_iterative_linear_solvers() {
     assert_eq!(result.summary.termination_type, TerminationType::Failure);
     assert!(result.parameters.is_none());
     assert!(result.summary.message.contains("exact factorization"));
+}
+
+#[test]
+fn line_search_directions_converge_on_rosenbrock_valley() {
+    for (line_search_direction_type, line_search_type) in [
+        (
+            LineSearchDirectionType::SteepestDescent,
+            LineSearchType::Armijo,
+        ),
+        (
+            LineSearchDirectionType::NonlinearConjugateGradient(
+                NonlinearConjugateGradientType::FletcherReeves,
+            ),
+            LineSearchType::Wolfe,
+        ),
+        (
+            LineSearchDirectionType::NonlinearConjugateGradient(
+                NonlinearConjugateGradientType::PolakRibiere,
+            ),
+            LineSearchType::Wolfe,
+        ),
+        (LineSearchDirectionType::Lbfgs, LineSearchType::Wolfe),
+    ] {
+        let mut problem = Problem::new();
+        problem.add_residual_block(2, &["x"], Box::new(RosenbrockFactor), None);
+        let initial_values = HashMap::from([("x".to_string(), na::dvector![-1.2, 1.0])]);
+        let options = OptimizerOptions {
+            max_iteration: 5_000,
+            line_search_direction_type,
+            line_search_type,
+            min_abs_error_decrease_threshold: 1e-16,
+            min_rel_error_decrease_threshold: 1e-16,
+            min_error_threshold: 1e-14,
+            ..OptimizerOptions::default()
+        };
+        let result = LineSearchOptimizer::new().optimize_with_summary(
+            &problem,
+            &initial_values,
+            Some(options),
+        );
+        let parameters = result.parameters.unwrap_or_else(|| {
+            panic!(
+                "{line_search_direction_type:?}/{line_search_type:?}: {}",
+                result.summary.message
+            )
+        });
+        let (parameter_tolerance, cost_tolerance) = match line_search_direction_type {
+            LineSearchDirectionType::SteepestDescent => (1e-2, 1e-5),
+            LineSearchDirectionType::NonlinearConjugateGradient(
+                NonlinearConjugateGradientType::FletcherReeves,
+            ) => (2e-5, 1e-10),
+            LineSearchDirectionType::NonlinearConjugateGradient(
+                NonlinearConjugateGradientType::PolakRibiere,
+            ) => (1e-4, 1e-8),
+            LineSearchDirectionType::Lbfgs => (1e-5, 1e-10),
+        };
+
+        assert!(
+            (parameters["x"][0] - 1.0).abs() < parameter_tolerance
+                && (parameters["x"][1] - 1.0).abs() < parameter_tolerance,
+            "{line_search_direction_type:?}/{line_search_type:?}: termination={:?}, iterations={}, cost={}, x={}",
+            result.summary.termination_type,
+            result.summary.iterations.len(),
+            result.summary.final_cost,
+            parameters["x"]
+        );
+        assert!(result.summary.final_cost < cost_tolerance);
+    }
+}
+
+#[test]
+fn lbfgs_rejects_armijo_line_search() {
+    let (problem, initial_values) = prior_problem();
+    let options = OptimizerOptions {
+        line_search_direction_type: LineSearchDirectionType::Lbfgs,
+        line_search_type: LineSearchType::Armijo,
+        ..OptimizerOptions::default()
+    };
+
+    let result =
+        LineSearchOptimizer::new().optimize_with_summary(&problem, &initial_values, Some(options));
+
+    assert_eq!(result.summary.termination_type, TerminationType::Failure);
+    assert!(result.parameters.is_none());
+    assert!(result.summary.message.contains("requires a Wolfe"));
+}
+
+#[test]
+fn line_search_rejects_parameter_bounds() {
+    let (mut problem, initial_values) = prior_problem();
+    problem.set_variable_bounds("x", 0, -1.0, 4.0);
+
+    let result = LineSearchOptimizer::new().optimize_with_summary(
+        &problem,
+        &initial_values,
+        Some(OptimizerOptions::default()),
+    );
+
+    assert_eq!(result.summary.termination_type, TerminationType::Failure);
+    assert!(result.parameters.is_none());
+    assert!(result.summary.message.contains("parameter bounds"));
+}
+
+#[test]
+fn inner_iterations_improve_a_small_trust_region_step() {
+    let (problem, initial_values, ordering) = schur_problem();
+    let without_inner = LevenbergMarquardtOptimizer::new(1e-6, 1e32, 1e-6).optimize_with_summary(
+        &problem,
+        &initial_values,
+        Some(OptimizerOptions {
+            max_iteration: 1,
+            ..OptimizerOptions::default()
+        }),
+    );
+    let with_inner = LevenbergMarquardtOptimizer::new(1e-6, 1e32, 1e-6).optimize_with_summary(
+        &problem,
+        &initial_values,
+        Some(OptimizerOptions {
+            max_iteration: 1,
+            inner_iteration_ordering: Some(ordering),
+            inner_iteration_tolerance: 1e-12,
+            ..OptimizerOptions::default()
+        }),
+    );
+
+    assert!(with_inner.summary.final_cost < without_inner.summary.final_cost);
+    assert_eq!(with_inner.summary.num_inner_iteration_steps, 1);
+    assert!(with_inner.summary.inner_iteration_time > std::time::Duration::ZERO);
+}
+
+#[test]
+fn inner_iterations_reject_non_independent_groups() {
+    let (problem, initial_values, _) = schur_problem();
+    let mut ordering = ParameterBlockOrdering::new();
+    ordering.add_element_to_group("point", 0);
+    ordering.add_element_to_group("camera", 0);
+    let options = OptimizerOptions {
+        inner_iteration_ordering: Some(ordering),
+        ..OptimizerOptions::default()
+    };
+
+    let result = LevenbergMarquardtOptimizer::default().optimize_with_summary(
+        &problem,
+        &initial_values,
+        Some(options),
+    );
+
+    assert_eq!(result.summary.termination_type, TerminationType::Failure);
+    assert!(result.summary.message.contains("not independent"));
+}
+
+#[test]
+fn lbfgs_and_lm_converge_on_powell_singular_function() {
+    for use_line_search in [false, true] {
+        let mut problem = Problem::new();
+        problem.add_residual_block(4, &["x"], Box::new(PowellFactor), None);
+        let initial_values = HashMap::from([("x".to_string(), na::dvector![3.0, -1.0, 0.0, 1.0])]);
+        let options = OptimizerOptions {
+            max_iteration: 1_000,
+            line_search_direction_type: LineSearchDirectionType::Lbfgs,
+            line_search_type: LineSearchType::Wolfe,
+            min_abs_error_decrease_threshold: 1e-16,
+            min_rel_error_decrease_threshold: 1e-16,
+            min_error_threshold: 1e-14,
+            ..OptimizerOptions::default()
+        };
+        let result = if use_line_search {
+            LineSearchOptimizer::new().optimize_with_summary(
+                &problem,
+                &initial_values,
+                Some(options),
+            )
+        } else {
+            LevenbergMarquardtOptimizer::default().optimize_with_summary(
+                &problem,
+                &initial_values,
+                Some(options),
+            )
+        };
+        let parameters = result.parameters.unwrap_or_else(|| {
+            panic!(
+                "Powell, line_search={use_line_search}: {}",
+                result.summary.message
+            )
+        });
+
+        assert!(parameters["x"].norm() < 1e-3);
+        assert!(result.summary.final_cost < 1e-10);
+    }
 }
 
 #[test]

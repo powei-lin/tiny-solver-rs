@@ -72,6 +72,12 @@ impl ParameterBlockOrdering {
             .collect()
     }
 
+    pub(crate) fn groups(&self) -> impl Iterator<Item = (usize, &BTreeSet<String>)> {
+        self.group_to_elements
+            .iter()
+            .map(|(&group, elements)| (group, elements))
+    }
+
     fn remove_from_group(&mut self, element: &str, group: usize) {
         let remove_group = self
             .group_to_elements

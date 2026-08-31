@@ -10,6 +10,7 @@ use crate::common::{
 };
 use crate::linear;
 use crate::optimizer;
+use crate::optimizer::inner_iteration::CoordinateDescentMinimizer;
 use crate::optimizer::trust_region::{
     DoglegStrategy, LevenbergMarquardtStrategy, TrustRegionStrategy, TrustRegionStrategyType,
 };
@@ -90,6 +91,26 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 total_start.elapsed(),
             );
         }
+        if opt_option.inner_iteration_ordering.is_some() && opt_option.evaluation_callback.is_some()
+        {
+            return configuration_failure(
+                "Inner iterations cannot be combined with an evaluation callback",
+                total_start.elapsed(),
+            );
+        }
+        let inner_iteration_minimizer = match &opt_option.inner_iteration_ordering {
+            Some(ordering) => match CoordinateDescentMinimizer::new(
+                problem,
+                &parameter_blocks,
+                ordering,
+                opt_option.max_num_inner_iterations,
+                opt_option.inner_iteration_tolerance,
+            ) {
+                Ok(minimizer) => Some(minimizer),
+                Err(message) => return configuration_failure(message, total_start.elapsed()),
+            },
+            None => None,
+        };
         if matches!(
             opt_option.linear_solver_type,
             LinearSolverType::IterativeSchur | LinearSolverType::Cgnr
@@ -201,6 +222,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut iterations = Vec::new();
         let mut termination_type = TerminationType::NoConvergence;
         let mut message = "Maximum number of iterations reached".to_string();
+        let mut inner_iterations_enabled = inner_iteration_minimizer.is_some();
+        let mut num_inner_iteration_steps = 0;
+        let mut inner_iteration_time = std::time::Duration::ZERO;
         for i in 0..opt_option.max_iteration {
             let iteration_start = Instant::now();
             let last_err = current_error;
@@ -247,7 +271,40 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     &symbolic_structure,
                     true,
                 );
-                let new_error = new_residuals.as_ref().squared_norm_l2();
+                let mut new_error = new_residuals.as_ref().squared_norm_l2();
+                let mut inner_iteration_cost_change = 0.0;
+                if inner_iterations_enabled && new_error.is_finite() {
+                    let inner_start = Instant::now();
+                    num_inner_iteration_steps += 1;
+                    let made_progress = inner_iteration_minimizer
+                        .as_ref()
+                        .unwrap()
+                        .minimize(problem, &mut new_param_blocks)
+                        .unwrap_or(false);
+                    if made_progress {
+                        let inner_error = problem
+                            .compute_residuals_with_structure(
+                                &new_param_blocks,
+                                &symbolic_structure,
+                                true,
+                            )
+                            .as_ref()
+                            .squared_norm_l2();
+                        if inner_error < new_error {
+                            inner_iteration_cost_change = new_error - inner_error;
+                            let relative_progress =
+                                inner_iteration_cost_change / new_error.max(f64::MIN_POSITIVE);
+                            new_error = inner_error;
+                            inner_iterations_enabled =
+                                relative_progress > opt_option.inner_iteration_tolerance;
+                        } else {
+                            inner_iterations_enabled = false;
+                        }
+                    } else {
+                        inner_iterations_enabled = false;
+                    }
+                    inner_iteration_time += inner_start.elapsed();
+                }
 
                 // rho is the ratio between the actual reduction in error and the reduction
                 // in error if the problem were linear.
@@ -258,7 +315,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 let normal_step = jac.as_ref().transpose().mul(jacobian_step.as_ref());
                 let linear_residual_change: faer::Mat<f64> =
                     step_faer.transpose().mul(2.0 * &jtr - normal_step);
-                let rho = actual_residual_change / linear_residual_change[(0, 0)];
+                let model_cost_change =
+                    linear_residual_change[(0, 0)] + inner_iteration_cost_change;
+                let rho = actual_residual_change / model_cost_change;
 
                 if rho > 0.0 && rho.is_finite() {
                     // The linear model appears to be fitting, so accept (x + dx) as the new x.
@@ -369,6 +428,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 initial_cost,
                 final_cost: current_error,
                 iterations,
+                num_inner_iteration_steps,
+                inner_iteration_time,
                 total_time: total_start.elapsed(),
             },
         }
