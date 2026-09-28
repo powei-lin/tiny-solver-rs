@@ -178,6 +178,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     // If there's too much divergence, reduce the trust region and try again with the same parameters.
                     u *= 2.0;
                     trace!("u {}", u);
+                    // The parameters did not change, so the error did not either:
+                    // skip the convergence checks, which would otherwise stop here.
+                    continue;
                 }
             } else {
                 log::debug!("solve ax=b failed");
