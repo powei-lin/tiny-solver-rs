@@ -15,6 +15,8 @@ use crate::sparse::SparseLinearSolver;
 const DEFAULT_MIN_DIAGONAL: f64 = 1e-6;
 const DEFAULT_MAX_DIAGONAL: f64 = 1e32;
 const DEFAULT_INITIAL_TRUST_REGION_RADIUS: f64 = 1e4;
+// Stop once ||dx|| <= eps * (||x|| + eps), like ceres' parameter_tolerance.
+const RELATIVE_STEP_THRESHOLD: f64 = 1e-8;
 
 #[derive(Debug)]
 pub struct LevenbergMarquardtOptimizer {
@@ -146,6 +148,18 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 trace!("Time elapsed in solve Ax=b is: {:?}", duration);
 
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
+
+                // A step this small can no longer change the parameters, whether it
+                // would be accepted or not, e.g. at a point where the gradient is zero.
+                let x_norm = parameter_blocks
+                    .values()
+                    .map(|p| p.params.norm_squared())
+                    .sum::<f64>()
+                    .sqrt();
+                if dx_na.norm() <= RELATIVE_STEP_THRESHOLD * (x_norm + RELATIVE_STEP_THRESHOLD) {
+                    trace!("relative step size low");
+                    break;
+                }
 
                 let mut new_param_blocks = parameter_blocks.clone();
 
