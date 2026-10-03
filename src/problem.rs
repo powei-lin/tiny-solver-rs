@@ -269,6 +269,26 @@ impl Problem {
         total_residual.view_range(.., ..).into_faer().to_owned()
     }
 
+    /// The cost the optimizers minimize: the sum of rho(||r_i||^2) over the
+    /// residual blocks, where rho is the block's loss function (rho(s) = s
+    /// without one).
+    pub fn compute_cost(&self, parameter_blocks: &HashMap<String, ParameterBlock>) -> f64 {
+        let costs: Vec<f64> = self
+            .residual_blocks
+            .par_iter()
+            .map(|(_, residual_block)| {
+                let params: Vec<&ParameterBlock> = residual_block
+                    .variable_key_list
+                    .iter()
+                    .filter_map(|var_key| parameter_blocks.get(var_key))
+                    .collect();
+                residual_block.cost(&params)
+            })
+            .collect();
+        // Sum sequentially, so the result does not depend on the thread schedule.
+        costs.iter().sum()
+    }
+
     pub fn compute_residual_and_jacobian(
         &self,
         parameter_blocks: &HashMap<String, ParameterBlock>,

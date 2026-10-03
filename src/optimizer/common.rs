@@ -78,15 +78,13 @@ pub trait Optimizer {
         // for (key, param) in params.par_iter_mut() {
         // }
     }
+    /// The cost being minimized, see [`problem::Problem::compute_cost`].
     fn compute_error(
         &self,
         problem: &problem::Problem,
         params: &HashMap<String, ParameterBlock>,
     ) -> f64 {
-        problem
-            .compute_residuals(params, true)
-            .as_ref()
-            .squared_norm_l2()
+        problem.compute_cost(params)
     }
 }
 
