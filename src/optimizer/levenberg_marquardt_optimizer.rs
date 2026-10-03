@@ -151,11 +151,13 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
                 // A step this small can no longer change the parameters, whether it
                 // would be accepted or not, e.g. at a point where the gradient is zero.
-                let x_norm = parameter_blocks
+                let mut squared_norms: Vec<f64> = parameter_blocks
                     .values()
                     .map(|p| p.params.norm_squared())
-                    .sum::<f64>()
-                    .sqrt();
+                    .collect();
+                // Sum in a fixed order, not in hash order.
+                squared_norms.sort_unstable_by(f64::total_cmp);
+                let x_norm = squared_norms.iter().sum::<f64>().sqrt();
                 if dx_na.norm() <= RELATIVE_STEP_THRESHOLD * (x_norm + RELATIVE_STEP_THRESHOLD) {
                     trace!("relative step size low");
                     break;

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use faer::sparse::{Argsort, Pair, SparseColMat, SymbolicSparseColMat};
@@ -15,7 +15,9 @@ type ResidualBlockId = usize;
 pub struct Problem {
     pub total_residual_dimension: usize,
     residual_id_count: usize,
-    residual_blocks: HashMap<ResidualBlockId, residual_block::ResidualBlock>,
+    // Ordered by id, i.e. in insertion order, so the residual rows do not
+    // depend on hash order.
+    residual_blocks: BTreeMap<ResidualBlockId, residual_block::ResidualBlock>,
     pub fixed_variable_indexes: HashMap<String, HashSet<usize>>,
     pub variable_bounds: HashMap<String, HashMap<usize, (f64, f64)>>,
     pub variable_manifold: HashMap<String, Arc<dyn Manifold + Sync + Send>>,
@@ -38,7 +40,7 @@ impl Problem {
         Problem {
             total_residual_dimension: 0,
             residual_id_count: 0,
-            residual_blocks: HashMap::new(),
+            residual_blocks: BTreeMap::new(),
             fixed_variable_indexes: HashMap::new(),
             variable_bounds: HashMap::new(),
             variable_manifold: HashMap::new(),
@@ -102,10 +104,31 @@ impl Problem {
         &self,
         parameter_blocks: &HashMap<String, ParameterBlock>,
     ) -> HashMap<String, usize> {
+        // Like ceres, which lays out parameter blocks in the order they are added,
+        // assign columns in the order the residual blocks first use each
+        // variable, so the layout does not depend on hash order. Variables that
+        // no residual block uses go last, in name order.
+        let mut ordered_names = Vec::with_capacity(parameter_blocks.len());
+        let mut used = HashSet::new();
+        for residual_block in self.residual_blocks.values() {
+            for var_key in &residual_block.variable_key_list {
+                if parameter_blocks.contains_key(var_key) && used.insert(var_key) {
+                    ordered_names.push(var_key);
+                }
+            }
+        }
+        let mut unused: Vec<_> = parameter_blocks
+            .keys()
+            .filter(|name| !used.contains(name))
+            .collect();
+        unused.sort_unstable();
+        ordered_names.extend(unused);
+
         let mut count_col_idx = 0;
         let mut variable_name_to_col_idx_dict = HashMap::new();
-        parameter_blocks
-            .iter()
+        ordered_names
+            .into_iter()
+            .map(|param_name| (param_name, &parameter_blocks[param_name]))
             .for_each(|(param_name, param_block)| {
                 variable_name_to_col_idx_dict.insert(param_name.to_owned(), count_col_idx);
                 let effective_size = if param_block.manifold.is_some() {
