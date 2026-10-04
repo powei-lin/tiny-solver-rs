@@ -122,6 +122,9 @@ impl Problem {
             .filter(|name| !used.contains(name))
             .collect();
         unused.sort_unstable();
+        if !unused.is_empty() {
+            log::warn!("no residual block uses these variables: {unused:?}");
+        }
         ordered_names.extend(unused);
 
         let mut count_col_idx = 0;
