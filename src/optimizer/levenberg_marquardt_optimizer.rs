@@ -89,7 +89,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut u = 1.0 / self.initial_trust_region_radius;
 
         let mut last_err;
-        let mut current_error = self.compute_error(problem, &parameter_blocks);
+        let mut current_error = problem.compute_cost(&parameter_blocks);
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
 
@@ -199,7 +199,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 return None;
             }
 
-            current_error = self.compute_error(problem, &parameter_blocks);
+            current_error = problem.compute_cost(&parameter_blocks);
             trace!("iter:{} total err:{}", i, current_error);
 
             if current_error < opt_option.min_error_threshold {

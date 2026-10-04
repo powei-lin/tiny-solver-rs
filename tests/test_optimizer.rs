@@ -85,8 +85,7 @@ mod tests {
         let initial_values = HashMap::from([("x".to_string(), na::dvector![1.0])]);
 
         let parameter_blocks = problem.initialize_parameter_blocks(&initial_values);
-        let cost = tiny_solver::LevenbergMarquardtOptimizer::default()
-            .compute_error(&problem, &parameter_blocks);
+        let cost = problem.compute_cost(&parameter_blocks);
 
         let expected = 0.25 + 5.0 + 5.0_f64.ln() + 1.0;
         assert!(
