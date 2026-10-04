@@ -89,7 +89,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let mut u = 1.0 / self.initial_trust_region_radius;
 
         let mut last_err;
-        let mut current_error = self.compute_error(problem, &parameter_blocks);
+        let mut current_error = problem.compute_cost(&parameter_blocks);
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
 
@@ -169,17 +169,15 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     &variable_name_to_col_idx_dict,
                 );
 
-                // Compute residuals of (x + dx)
-                let new_residuals = problem.compute_residuals(&new_param_blocks, true);
-
-                // rho is the ratio between the actual reduction in error and the reduction
-                // in error if the problem were linear.
-                let actual_residual_change =
-                    residuals.as_ref().squared_norm_l2() - new_residuals.as_ref().squared_norm_l2();
-                trace!("actual_residual_change {}", actual_residual_change);
+                // rho is the ratio between the actual reduction in cost and the reduction
+                // in cost if the problem were linear. The cost is the sum of the loss
+                // functions, not the squared norm of the loss-corrected residuals: those
+                // only give the linear model.
+                let actual_cost_change = current_error - problem.compute_cost(&new_param_blocks);
+                trace!("actual_cost_change {}", actual_cost_change);
                 let linear_residual_change: faer::Mat<f64> =
                     lm_step.transpose().mul(2.0 * &jtr - &jtj * &lm_step);
-                let rho = actual_residual_change / linear_residual_change[(0, 0)];
+                let rho = actual_cost_change / linear_residual_change[(0, 0)];
 
                 if rho > 0.0 {
                     // The linear model appears to be fitting, so accept (x + dx) as the new x.
@@ -201,7 +199,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 return None;
             }
 
-            current_error = self.compute_error(problem, &parameter_blocks);
+            current_error = problem.compute_cost(&parameter_blocks);
             trace!("iter:{} total err:{}", i, current_error);
 
             if current_error < opt_option.min_error_threshold {

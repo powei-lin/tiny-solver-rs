@@ -1,8 +1,8 @@
 [package]
 name = "tiny-solver"
-version = "0.18.2"
+version = "0.18.3"
 edition = "2024"
-authors = ["Powei Lin <poweilin1994@gmail.com>, Hossam R. <hrabbouh@gmail.com>"]
+authors = ["Powei Lin <poweilin1994@gmail.com>, Hossam R. <hrabbouh@gmail.com>", "Vitaly Vorobyev <vit.vorobiev@gmail.com>"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 description = "Factor graph solver"

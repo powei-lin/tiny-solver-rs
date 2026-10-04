@@ -59,7 +59,7 @@ impl Loss for CauchyLoss {
         let inv = 1.0 / sum;
         // 'sum' and 'inv' are always positive, assuming that 's' is.
         [
-            self.scale2 * sum.log2(),
+            self.scale2 * sum.ln(),
             inv.max(f64::MIN),
             -self.c * (inv * inv),
         ]

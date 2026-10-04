@@ -59,7 +59,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         );
 
         let mut last_err;
-        let mut current_error = self.compute_error(problem, &parameter_blocks);
+        let mut current_error = problem.compute_cost(&parameter_blocks);
 
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
@@ -87,7 +87,7 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
                 return None;
             }
 
-            current_error = self.compute_error(problem, &parameter_blocks);
+            current_error = problem.compute_cost(&parameter_blocks);
             trace!(
                 "iter:{}, total err:{}, residual + jacobian duration: {:?}, solving duration: {:?}",
                 i, current_error, residual_and_jacobian_duration, solving_duration

@@ -52,6 +52,16 @@ impl ResidualBlock {
         }
         residual
     }
+    /// The cost of this block: rho(||r||^2) with a loss function, ||r||^2
+    /// without one.
+    pub fn cost(&self, params: &[&ParameterBlock]) -> f64 {
+        let param_vec: Vec<_> = params.iter().map(|p| p.params.clone()).collect();
+        let squared_norm = self.factor.residual_func_f64(&param_vec).norm_squared();
+        match self.loss_func.as_ref() {
+            Some(loss_func) => loss_func.evaluate(squared_norm)[0],
+            None => squared_norm,
+        }
+    }
     pub fn residual_and_jacobian(
         &self,
         params: &[&ParameterBlock],
