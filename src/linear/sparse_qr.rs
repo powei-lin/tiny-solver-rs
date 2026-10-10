@@ -52,9 +52,9 @@ impl SparseLinearSolver for SparseQRSolver {
 
         let sym = self.symbolic_pattern.as_ref().unwrap();
         if let Ok(qr) = solvers::Qr::try_new_with_symbolic(sym.clone(), jtj.as_ref()) {
-            let mut minus_jtr = -jtr;
-            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, minus_jtr.as_mut());
-            Some(minus_jtr)
+            let mut dx = jtr.clone();
+            qr.solve_lstsq_in_place_with_conj(faer::Conj::No, dx.as_mut());
+            Some(dx)
         } else {
             None
         }
