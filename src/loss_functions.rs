@@ -1,5 +1,3 @@
-use core::f64;
-
 pub enum LossFunc {
     HuberLoss,
 }
