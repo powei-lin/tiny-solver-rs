@@ -23,4 +23,21 @@ mod tests {
             assert!(equal_to_na(&r));
         }
     }
+
+    /// exp must agree with nalgebra to rounding error at any rotation angle:
+    /// below the small-angle threshold of 1e-3, and beyond 2*pi.
+    #[test]
+    fn test_so3_exp_matches_nalgebra() {
+        let axis = na::Vector3::new(1.0, -2.0, 0.5).normalize();
+        let small = (1..100).map(|i| 1e-5 * i as f64);
+        let large = (1..400).map(|i| 4.0 * PI * i as f64 / 400.0);
+        for theta in small.chain(large) {
+            let rvec = axis * theta;
+            let q = SO3::exp(na::DVector::from_column_slice(rvec.as_slice()).as_view()).to_vec();
+            let expected = na::UnitQuaternion::from_scaled_axis(rvec);
+            let expected = na::Vector4::new(expected.i, expected.j, expected.k, expected.w);
+            let diff = (q - expected).norm().min((q + expected).norm());
+            assert!(diff < 1e-14, "theta = {theta}: {q} != +/-{expected}");
+        }
+    }
 }
