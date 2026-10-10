@@ -21,7 +21,7 @@ jobs:
     - name: Format
       run: cargo fmt --check --verbose
     - name: Linting
-      run: cargo clippy
+      run: cargo clippy -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Run tests
