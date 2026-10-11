@@ -64,6 +64,32 @@ mod tests {
     }
 
     #[test]
+    fn remove_residual_block_then_add_another() {
+        use tiny_solver::Optimizer;
+
+        let prior = |v: f64| Box::new(tiny_solver::factors::PriorFactor { v: na::dvector![v] });
+        let mut problem = tiny_solver::Problem::new();
+        let first = problem.add_residual_block(1, &["x"], prior(1.0), None);
+        problem.add_residual_block(1, &["y"], prior(2.0), None);
+        problem.add_residual_block(1, &["z"], prior(3.0), None);
+
+        problem.remove_residual_block(first);
+        problem.add_residual_block(1, &["x"], prior(5.0), None);
+
+        let initial_values = HashMap::from([
+            ("x".to_string(), na::dvector![0.0]),
+            ("y".to_string(), na::dvector![0.0]),
+            ("z".to_string(), na::dvector![0.0]),
+        ]);
+        let result = tiny_solver::LevenbergMarquardtOptimizer::default()
+            .optimize(&problem, &initial_values, None)
+            .unwrap();
+        assert!((result["x"][0] - 5.0).abs() < 1e-6);
+        assert!((result["y"][0] - 2.0).abs() < 1e-6);
+        assert!((result["z"][0] - 3.0).abs() < 1e-6);
+    }
+
+    #[test]
     fn fix_variable() {
         let mut problem = tiny_solver::Problem::new();
         problem.fix_variable("x", 0);
