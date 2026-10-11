@@ -174,6 +174,12 @@ impl Problem {
     ) -> Option<residual_block::ResidualBlock> {
         if let Some(residual_block) = self.residual_blocks.remove(&block_id) {
             self.total_residual_dimension -= residual_block.dim_residual;
+            // Close the gap: rows follow the blocks in id order, as when they were added.
+            let mut row_start = 0;
+            for block in self.residual_blocks.values_mut() {
+                block.residual_row_start_idx = row_start;
+                row_start += block.dim_residual;
+            }
             Some(residual_block)
         } else {
             None
