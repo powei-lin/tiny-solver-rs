@@ -87,6 +87,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
         // Damping parameter (a.k.a lambda / Marquardt parameter)
         let mut u = 1.0 / self.initial_trust_region_radius;
+        // Like ceres, each consecutive rejected or invalid step raises u twice as much.
+        let mut v = 2.0;
+        let mut warned_solve_failed = false;
 
         let mut last_err;
         let mut current_error = problem.compute_cost(&parameter_blocks);
@@ -186,17 +189,30 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     // Increase the trust region by reducing u
                     let tmp = 2.0 * rho - 1.0;
                     u *= (1.0_f64 / 3.0).max(1.0 - tmp * tmp * tmp);
+                    v = 2.0;
                 } else {
                     // If there's too much divergence, reduce the trust region and try again with the same parameters.
-                    u *= 2.0;
+                    u *= v;
+                    v *= 2.0;
                     trace!("u {}", u);
                     // The parameters did not change, so the error did not either:
                     // skip the convergence checks, which would otherwise stop here.
                     continue;
                 }
             } else {
-                log::debug!("solve ax=b failed");
-                return None;
+                // Like ceres, treat a failed solve as a rejected step: retry
+                // with more damping.
+                if !warned_solve_failed {
+                    warned_solve_failed = true;
+                    log::warn!(
+                        "the linear solve failed, retrying with more damping; \
+                         some parameters may not change the cost, e.g. no pose is fixed"
+                    );
+                }
+                u *= v;
+                v *= 2.0;
+                trace!("solve ax=b failed, u {}", u);
+                continue;
             }
 
             current_error = problem.compute_cost(&parameter_blocks);

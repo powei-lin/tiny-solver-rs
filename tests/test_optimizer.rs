@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::f64::consts::{FRAC_PI_2, TAU};
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     use nalgebra as na;
     use tiny_solver::Optimizer;
+    use tiny_solver::factors::{BetweenFactorSE2, PriorFactor};
     use tiny_solver::loss_functions::{CauchyLoss, HuberLoss};
 
     /// r(x) = atan(x). From x0 = 2 the undamped (Gauss-Newton) step overshoots
@@ -29,6 +31,44 @@ mod tests {
             .unwrap();
 
         assert!(result["x"][0].abs() < 1e-2, "x = {}", result["x"][0]);
+    }
+
+    /// r(x) = atan(x), counting its evaluations.
+    struct CountingAtanFactor {
+        evaluations: Arc<AtomicUsize>,
+    }
+    impl<T: na::RealField> tiny_solver::factors::Factor<T> for CountingAtanFactor {
+        fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+            self.evaluations.fetch_add(1, Ordering::Relaxed);
+            na::dvector![params[0][0].clone().atan()]
+        }
+    }
+
+    /// From x0 = 3 the first steps overshoot, as in the test above, so LM
+    /// rejects several steps in a row. Like ceres, each consecutive rejection
+    /// must raise the damping twice as much as the one before (x2, x4, x8, ...).
+    /// Raising it by x2 every time takes 14 rejections and 47 evaluations here.
+    #[test]
+    fn levenberg_marquardt_raises_the_damping_faster_after_consecutive_rejections() {
+        let evaluations = Arc::new(AtomicUsize::new(0));
+        let mut problem = tiny_solver::Problem::new();
+        problem.add_residual_block(
+            1,
+            &["x"],
+            Box::new(CountingAtanFactor {
+                evaluations: evaluations.clone(),
+            }),
+            None,
+        );
+        let initial_values = HashMap::from([("x".to_string(), na::dvector![3.0])]);
+
+        let result = tiny_solver::LevenbergMarquardtOptimizer::default()
+            .optimize(&problem, &initial_values, None)
+            .unwrap();
+
+        assert!(result["x"][0].abs() < 1e-2, "x = {}", result["x"][0]);
+        let evaluations = evaluations.load(Ordering::Relaxed);
+        assert!(evaluations < 36, "{evaluations} residual evaluations");
     }
 
     /// r(x) = x^2 + 1, counting its evaluations. At x = 0 the gradient is zero
@@ -165,6 +205,60 @@ mod tests {
             "gradient {g:?} at a = {}, b = {}",
             result["ab"][0],
             result["ab"][1]
+        );
+    }
+
+    /// A loop of 16 poses [theta, x, y] on a circle. Each odometry edge steps
+    /// forward and turns by 2pi/16. The initial guess is poor (angles up to
+    /// 2 rad off). Without a prior the loop can move and turn freely, so JᵀJ is
+    /// singular and only LM's damping makes it invertible.
+    fn pose_loop(with_prior: bool) -> (tiny_solver::Problem, HashMap<String, na::DVector<f64>>) {
+        let n = 16;
+        let turn = TAU / n as f64;
+        let mut problem = tiny_solver::Problem::new();
+        let mut initial_values = HashMap::new();
+        for i in 0..n {
+            let t = i as f64 * turn;
+            let e = (2.3 * i as f64 + 0.5).sin();
+            let guess = na::dvector![
+                t + FRAC_PI_2 + 2.0 * e,
+                t.cos() + 0.5 * (2.3 * i as f64).cos(),
+                t.sin() - 0.5 * e
+            ];
+            initial_values.insert(format!("x{i}"), guess);
+            let odometry = BetweenFactorSE2 {
+                dx: 2.0 * (turn / 2.0).sin(),
+                dy: 0.0,
+                dtheta: turn,
+            };
+            let (a, b) = (format!("x{i}"), format!("x{}", (i + 1) % n));
+            problem.add_residual_block(3, &[&a, &b], Box::new(odometry), None);
+        }
+        if with_prior {
+            let v = initial_values["x0"].clone();
+            problem.add_residual_block(3, &["x0"], Box::new(PriorFactor { v }), None);
+        }
+        (problem, initial_values)
+    }
+
+    /// Each accepted step shrinks the damping, until it falls below the
+    /// rounding error of the singular JᵀJ and the Cholesky factorization fails.
+    /// Like ceres, LM must treat that as a rejected step and retry with more
+    /// damping, not return None. It should then end where it ends when a prior
+    /// holds the first pose.
+    #[test]
+    fn levenberg_marquardt_retries_after_a_failed_linear_solve() {
+        let lm = tiny_solver::LevenbergMarquardtOptimizer::default();
+        let (problem, initial_values) = pose_loop(false);
+        let result = lm.optimize(&problem, &initial_values, None).unwrap();
+        let cost = problem.compute_cost(&problem.initialize_parameter_blocks(&result));
+
+        let (with_prior, _) = pose_loop(true);
+        let expected = lm.optimize(&with_prior, &initial_values, None).unwrap();
+        let expected = with_prior.compute_cost(&with_prior.initialize_parameter_blocks(&expected));
+        assert!(
+            (cost - expected).abs() < 1e-4 * expected,
+            "cost {cost}, with a prior {expected}"
         );
     }
 }
