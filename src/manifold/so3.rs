@@ -44,19 +44,24 @@ impl<T: na::RealField> SO3<T> {
         let theta2 = xi.norm_squared();
 
         if theta2 < T::from_f64(1e-6).unwrap() {
-            // cos(theta / 2) \approx 1 - theta^2 / 8
-            xyzw.w = T::one() - theta2 / T::from_f64(8.0).unwrap();
-            // Complete the square so that norm is one
-            let tmp = T::from_f64(0.5).unwrap();
+            // Taylor series of cos(theta / 2) and sin(theta / 2) / theta. Below this
+            // threshold, the next terms are under f64 precision.
+            let theta4 = theta2.clone() * theta2.clone();
+            xyzw.w = T::one() - theta2.clone() / T::from_f64(8.0).unwrap()
+                + theta4.clone() / T::from_f64(384.0).unwrap();
+            let tmp = T::from_f64(0.5).unwrap() - theta2 / T::from_f64(48.0).unwrap()
+                + theta4 / T::from_f64(3840.0).unwrap();
             xyzw.x = xi[0].clone() * tmp.clone();
             xyzw.y = xi[1].clone() * tmp.clone();
             xyzw.z = xi[2].clone() * tmp;
         } else {
             let theta = theta2.sqrt();
-            xyzw.w = (theta.clone() * T::from_f64(0.5).unwrap()).cos();
+            let half_theta = theta.clone() * T::from_f64(0.5).unwrap();
+            xyzw.w = half_theta.clone().cos();
 
             let omega = xi / theta;
-            let sin_theta_half = (T::one() - xyzw.w.clone() * xyzw.w.clone()).sqrt();
+            // Not sqrt(1 - w^2): that drops the sign of sin(theta / 2) above 2 pi.
+            let sin_theta_half = half_theta.sin();
             xyzw.x = omega[0].clone() * sin_theta_half.clone();
             xyzw.y = omega[1].clone() * sin_theta_half.clone();
             xyzw.z = omega[2].clone() * sin_theta_half;
