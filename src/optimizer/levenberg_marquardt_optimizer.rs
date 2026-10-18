@@ -58,8 +58,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         let variable_name_to_col_idx_dict =
             problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
         let total_variable_dimension = parameter_blocks
-            .values()
-            .map(|p| {
+            .iter()
+            .filter(|(name, _)| variable_name_to_col_idx_dict.contains_key(*name))
+            .map(|(_, p)| {
                 if p.manifold.is_some() {
                     p.tangent_size()
                 } else {

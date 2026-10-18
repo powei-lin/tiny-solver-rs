@@ -17,7 +17,7 @@ mod tests {
 
     /// Like ceres, which lays out parameter blocks in the order they are added,
     /// the columns follow the order in which the residual blocks first use each
-    /// variable. Variables that no residual block uses go last, in name order.
+    /// variable. Variables that no residual block uses get no columns.
     #[test]
     fn columns_follow_the_order_variables_are_first_used() {
         let mut problem = tiny_solver::Problem::new();
@@ -45,17 +45,8 @@ mod tests {
         let columns = problem.get_variable_name_to_col_idx_dict(&parameter_blocks);
 
         let expected = HashMap::from(
-            [
-                ("f", 0),
-                ("c", 2),
-                ("e", 3),
-                ("a", 6),
-                ("b", 7),
-                ("d", 9),
-                ("u", 10),
-                ("z0", 11),
-            ]
-            .map(|(name, column)| (name.to_string(), column)),
+            [("f", 0), ("c", 2), ("e", 3), ("a", 6), ("b", 7), ("d", 9)]
+                .map(|(name, column)| (name.to_string(), column)),
         );
         assert_eq!(columns, expected);
     }
