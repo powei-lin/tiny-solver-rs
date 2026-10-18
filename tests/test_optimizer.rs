@@ -261,4 +261,25 @@ mod tests {
             "cost {cost}, with a prior {expected}"
         );
     }
+
+    /// Like ceres, a variable that no residual block uses must be left out of
+    /// the solve and returned unchanged, e.g. a pose whose last measurement was
+    /// removed, or an extra key in the initial values.
+    #[test]
+    fn optimizers_leave_an_unused_variable_unchanged() {
+        let (problem, initial_values) = pose_loop(true);
+        let mut with_unused = initial_values.clone();
+        with_unused.insert("unused".to_string(), na::dvector![0.1, 0.2, 0.3]);
+
+        let optimizers: [Box<dyn Optimizer>; 2] = [
+            Box::new(tiny_solver::LevenbergMarquardtOptimizer::default()),
+            Box::new(tiny_solver::GaussNewtonOptimizer::default()),
+        ];
+        for optimizer in optimizers {
+            let expected = optimizer.optimize(&problem, &initial_values, None).unwrap();
+            let mut result = optimizer.optimize(&problem, &with_unused, None).unwrap();
+            assert_eq!(result.remove("unused").unwrap(), with_unused["unused"]);
+            assert_eq!(result, expected);
+        }
+    }
 }
