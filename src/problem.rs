@@ -106,8 +106,8 @@ impl Problem {
     ) -> HashMap<String, usize> {
         // Like ceres, which lays out parameter blocks in the order they are added,
         // assign columns in the order the residual blocks first use each
-        // variable, so the layout does not depend on hash order. Variables that
-        // no residual block uses go last, in name order.
+        // variable, so the layout does not depend on hash order. As in ceres,
+        // variables that no residual block uses get no columns and stay unchanged.
         let mut ordered_names = Vec::with_capacity(parameter_blocks.len());
         let mut used = HashSet::new();
         for residual_block in self.residual_blocks.values() {
@@ -123,9 +123,8 @@ impl Problem {
             .collect();
         unused.sort_unstable();
         if !unused.is_empty() {
-            log::warn!("no residual block uses these variables: {unused:?}");
+            log::warn!("no residual block uses these variables, they stay unchanged: {unused:?}");
         }
-        ordered_names.extend(unused);
 
         let mut count_col_idx = 0;
         let mut variable_name_to_col_idx_dict = HashMap::new();
