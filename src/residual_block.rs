@@ -39,6 +39,7 @@ impl ResidualBlock {
     pub fn residual(&self, params: &[&ParameterBlock], with_loss_fn: bool) -> na::DVector<f64> {
         let param_vec: Vec<_> = params.iter().map(|p| p.params.clone()).collect();
         let mut residual = self.factor.residual_func_f64(&param_vec);
+        self.check_residual_count(residual.nrows());
         let squared_norm = residual.norm_squared();
         if with_loss_fn {
             if let Some(loss_func) = self.loss_func.as_ref() {
@@ -93,6 +94,7 @@ impl ResidualBlock {
 
         // tangent size
         let residual_with_jacobian = self.factor.residual_func_dual(&params_plus_tangent_dual);
+        self.check_residual_count(residual_with_jacobian.nrows());
         let mut residual = residual_with_jacobian.map(|x| x.re);
         let jacobian = residual_with_jacobian
             .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
@@ -111,6 +113,14 @@ impl ResidualBlock {
             // let cost = 0.5 * squared_norm;
         }
         (residual, jacobian)
+    }
+
+    fn check_residual_count(&self, returned: usize) {
+        assert_eq!(
+            returned, self.dim_residual,
+            "residual block {}: the factor returned {} residuals, but was added with dim_residual = {}",
+            self.residual_block_id, returned, self.dim_residual
+        );
     }
 }
 
