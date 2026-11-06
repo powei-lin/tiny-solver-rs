@@ -2,8 +2,8 @@
 mod tests {
     use std::collections::HashMap;
     use std::f64::consts::{FRAC_PI_2, TAU};
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
 
     use nalgebra as na;
     use tiny_solver::Optimizer;
@@ -315,28 +315,13 @@ mod tests {
         );
     }
 
-    static WARNINGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-    struct WarningLog;
-    impl log::Log for WarningLog {
-        fn enabled(&self, metadata: &log::Metadata) -> bool {
-            metadata.level() <= log::Level::Warn
-        }
-        fn log(&self, record: &log::Record) {
-            if self.enabled(record.metadata()) {
-                let mut warnings = WARNINGS.lock().unwrap_or_else(|e| e.into_inner());
-                warnings.push(record.args().to_string());
-            }
-        }
-        fn flush(&self) {}
-    }
-
     /// fix_variable does not work on a variable with a manifold (the solver
-    /// still steps along the fixed coordinates), so the solve must warn.
+    /// still steps along the fixed coordinates), so the solve must panic.
     #[test]
-    fn fix_variable_on_a_manifold_variable_warns() {
-        let _ = log::set_logger(&WarningLog);
-        log::set_max_level(log::LevelFilter::Warn);
-
+    #[should_panic(
+        expected = "fix_variable does not work on variables with a manifold: [\"fixed_pose\"]"
+    )]
+    fn fix_variable_on_a_manifold_variable_is_named() {
         let mut problem = tiny_solver::Problem::new();
         let pose = na::dvector![0.1, 0.2, 0.3, 0.927, 1.0, 2.0, 3.0];
         let v = na::dvector![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0];
@@ -348,14 +333,6 @@ mod tests {
             &problem,
             &initial_values,
             None,
-        );
-
-        let warnings = WARNINGS.lock().unwrap_or_else(|e| e.into_inner()).clone();
-        assert!(
-            warnings
-                .iter()
-                .any(|w| w.contains("manifold") && w.contains("fixed_pose")),
-            "{warnings:?}"
         );
     }
 }

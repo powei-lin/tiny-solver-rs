@@ -134,14 +134,12 @@ impl Problem {
             .filter(|(_, p)| p.manifold.is_some() && !p.fixed_variables.is_empty())
             .map(|(name, _)| name)
             .collect();
-        if !fixed_on_manifold.is_empty() {
-            fixed_on_manifold.sort_unstable();
-            log::warn!(
-                "fix_variable does not work on variables with a manifold and can give wrong \
-                 results: {fixed_on_manifold:?}. To hold such a variable constant, don't set its \
-                 manifold and fix all of its coordinates."
-            );
-        }
+        fixed_on_manifold.sort_unstable();
+        assert!(
+            fixed_on_manifold.is_empty(),
+            "fix_variable does not work on variables with a manifold: {fixed_on_manifold:?}. To \
+             hold such a variable constant, don't set its manifold and fix all of its coordinates."
+        );
 
         let mut count_col_idx = 0;
         let mut variable_name_to_col_idx_dict = HashMap::new();
@@ -202,7 +200,8 @@ impl Problem {
         }
     }
     /// Fixes coordinate `idx` of variable `var_to_fix`. This doesn't work on a variable with a
-    /// manifold: to hold one constant, don't set its manifold and fix all of its coordinates.
+    /// manifold, and the solve panics: to hold one constant, don't set its manifold and fix all
+    /// of its coordinates.
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
         if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
             var_mut.insert(idx);
