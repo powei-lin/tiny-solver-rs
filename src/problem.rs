@@ -110,9 +110,13 @@ impl Problem {
         // variables that no residual block uses get no columns and stay unchanged.
         let mut ordered_names = Vec::with_capacity(parameter_blocks.len());
         let mut used = HashSet::new();
-        for residual_block in self.residual_blocks.values() {
+        for (block_id, residual_block) in &self.residual_blocks {
             for var_key in &residual_block.variable_key_list {
-                if parameter_blocks.contains_key(var_key) && used.insert(var_key) {
+                assert!(
+                    parameter_blocks.contains_key(var_key),
+                    "residual block {block_id} uses variable '{var_key}', which has no initial value"
+                );
+                if used.insert(var_key) {
                     ordered_names.push(var_key);
                 }
             }
@@ -125,6 +129,16 @@ impl Problem {
         if !unused.is_empty() {
             log::warn!("no residual block uses these variables, they stay unchanged: {unused:?}");
         }
+        let fixed_on_manifold: Vec<_> = parameter_blocks
+            .iter()
+            .filter(|(_, p)| p.manifold.is_some() && !p.fixed_variables.is_empty())
+            .map(|(name, _)| name)
+            .collect();
+        assert!(
+            fixed_on_manifold.is_empty(),
+            "fix_variable does not work on variables with a manifold: {fixed_on_manifold:?}. To \
+             hold such a variable constant, don't set its manifold and fix all of its coordinates."
+        );
 
         let mut count_col_idx = 0;
         let mut variable_name_to_col_idx_dict = HashMap::new();
@@ -184,6 +198,9 @@ impl Problem {
             None
         }
     }
+    /// Fixes coordinate `idx` of variable `var_to_fix`. This doesn't work on a variable with a
+    /// manifold, and the solve panics: to hold one constant, don't set its manifold and fix all
+    /// of its coordinates.
     pub fn fix_variable(&mut self, var_to_fix: &str, idx: usize) {
         if let Some(var_mut) = self.fixed_variable_indexes.get_mut(var_to_fix) {
             var_mut.insert(idx);

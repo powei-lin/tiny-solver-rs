@@ -9,6 +9,7 @@ mod tests {
     use tiny_solver::Optimizer;
     use tiny_solver::factors::{BetweenFactorSE2, PriorFactor};
     use tiny_solver::loss_functions::{CauchyLoss, HuberLoss};
+    use tiny_solver::manifold::se3::SE3Manifold;
 
     /// r(x) = atan(x). From x0 = 2 the undamped (Gauss-Newton) step overshoots
     /// to x ~ -3.5, where |r| is larger, so LM has to reject it and retry with
@@ -281,5 +282,57 @@ mod tests {
             assert_eq!(result.remove("unused").unwrap(), with_unused["unused"]);
             assert_eq!(result, expected);
         }
+    }
+
+    /// A typo in a key, or a variable left out of the initial values, must be
+    /// reported by name, not as an index out of bounds inside the solver.
+    #[test]
+    #[should_panic(expected = "uses variable 'x5', which has no initial value")]
+    fn a_missing_initial_value_is_named() {
+        let (problem, mut initial_values) = pose_loop(true);
+        initial_values.remove("x5");
+        tiny_solver::LevenbergMarquardtOptimizer::default().optimize(
+            &problem,
+            &initial_values,
+            None,
+        );
+    }
+
+    /// A factor that returns a different number of residuals than its block
+    /// was added with must be reported, not fail inside nalgebra.
+    #[test]
+    #[should_panic(
+        expected = "the factor returned 3 residuals, but was added with dim_residual = 2"
+    )]
+    fn a_wrong_residual_count_is_named() {
+        let (mut problem, initial_values) = pose_loop(true);
+        let v = initial_values["x3"].clone();
+        problem.add_residual_block(2, &["x3"], Box::new(PriorFactor { v }), None);
+        tiny_solver::LevenbergMarquardtOptimizer::default().optimize(
+            &problem,
+            &initial_values,
+            None,
+        );
+    }
+
+    /// fix_variable does not work on a variable with a manifold (the solver
+    /// still steps along the fixed coordinates), so the solve must panic.
+    #[test]
+    #[should_panic(
+        expected = "fix_variable does not work on variables with a manifold: [\"fixed_pose\"]"
+    )]
+    fn fix_variable_on_a_manifold_variable_is_named() {
+        let mut problem = tiny_solver::Problem::new();
+        let pose = na::dvector![0.1, 0.2, 0.3, 0.927, 1.0, 2.0, 3.0];
+        let v = na::dvector![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0];
+        problem.add_residual_block(7, &["fixed_pose"], Box::new(PriorFactor { v }), None);
+        problem.set_variable_manifold("fixed_pose", Arc::new(SE3Manifold));
+        problem.fix_variable("fixed_pose", 4);
+        let initial_values = HashMap::from([("fixed_pose".to_string(), pose)]);
+        tiny_solver::LevenbergMarquardtOptimizer::default().optimize(
+            &problem,
+            &initial_values,
+            None,
+        );
     }
 }
