@@ -129,12 +129,11 @@ impl Problem {
         if !unused.is_empty() {
             log::warn!("no residual block uses these variables, they stay unchanged: {unused:?}");
         }
-        let mut fixed_on_manifold: Vec<_> = parameter_blocks
+        let fixed_on_manifold: Vec<_> = parameter_blocks
             .iter()
             .filter(|(_, p)| p.manifold.is_some() && !p.fixed_variables.is_empty())
             .map(|(name, _)| name)
             .collect();
-        fixed_on_manifold.sort_unstable();
         assert!(
             fixed_on_manifold.is_empty(),
             "fix_variable does not work on variables with a manifold: {fixed_on_manifold:?}. To \
