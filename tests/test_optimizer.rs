@@ -10,6 +10,7 @@ mod tests {
     use tiny_solver::factors::{BetweenFactorSE2, PriorFactor};
     use tiny_solver::loss_functions::{CauchyLoss, HuberLoss};
     use tiny_solver::manifold::se3::SE3Manifold;
+    use tiny_solver::optimizer::{OptimizerOptions, TerminationType};
 
     /// r(x) = atan(x). From x0 = 2 the undamped (Gauss-Newton) step overshoots
     /// to x ~ -3.5, where |r| is larger, so LM has to reject it and retry with
@@ -334,5 +335,53 @@ mod tests {
             &initial_values,
             None,
         );
+    }
+
+    /// Like Ceres' summary, `optimize` reports why it stopped, the costs, and how
+    /// many steps it took. Every attempt counts toward `max_iteration`.
+    #[test]
+    fn levenberg_marquardt_reports_a_summary() {
+        let (problem, initial_values) = pose_loop(true);
+        let cost = |values| problem.compute_cost(&problem.initialize_parameter_blocks(values));
+        let lm = tiny_solver::LevenbergMarquardtOptimizer::default();
+
+        let summary = lm.optimize(&problem, &initial_values, None);
+        assert_eq!(summary.termination_type, TerminationType::Convergence);
+        assert_eq!(summary.initial_cost, cost(&initial_values));
+        assert_eq!(summary.final_cost, cost(&summary.parameters));
+        assert!(summary.final_cost < summary.initial_cost);
+        assert!(summary.num_successful_steps > 0);
+
+        let mut options = OptimizerOptions::default();
+        options.max_iteration = 2;
+        let summary = lm.optimize(&problem, &initial_values, Some(options));
+        assert_eq!(summary.termination_type, TerminationType::NoConvergence);
+        assert_eq!(
+            summary.num_successful_steps + summary.num_unsuccessful_steps,
+            2
+        );
+    }
+
+    /// r(x) = ln(x). From x0 = 3 the Gauss-Newton step goes to x < 0, where the
+    /// cost is NaN.
+    struct LnFactor;
+    impl<T: na::RealField> tiny_solver::factors::Factor<T> for LnFactor {
+        fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T> {
+            na::dvector![params[0][0].clone().ln()]
+        }
+    }
+
+    /// A failed solve must say so and keep the last parameters, not lose them.
+    #[test]
+    fn gauss_newton_reports_a_failure_and_keeps_the_parameters() {
+        let mut problem = tiny_solver::Problem::new();
+        problem.add_residual_block(1, &["x"], Box::new(LnFactor), None);
+        let initial_values = HashMap::from([("x".to_string(), na::dvector![3.0])]);
+
+        let summary =
+            tiny_solver::GaussNewtonOptimizer::default().optimize(&problem, &initial_values, None);
+        assert_eq!(summary.termination_type, TerminationType::Failure);
+        assert_eq!(summary.parameters, initial_values);
+        assert_eq!(summary.final_cost, summary.initial_cost);
     }
 }
