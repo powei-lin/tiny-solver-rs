@@ -29,7 +29,7 @@ mod tests {
             num_dual::DualDVec64::new(2.0, num_dual::Derivative::some(na::dvector![0.0, 1.0]))
         ];
         // there are two residuals r0, r1
-        let residual_with_jacobian = prior_factor.residual_func_dual(&[dual_params]);
+        let residual_with_jacobian = prior_factor.residual_func(&[dual_params]);
         assert!(residual_with_jacobian[0].re == -2.0);
         assert!(residual_with_jacobian[1].re == 1.0);
 

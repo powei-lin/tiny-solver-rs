@@ -5,11 +5,14 @@ use crate::manifold::se3::SE3;
 pub trait Factor<T: na::RealField>: Send + Sync {
     fn residual_func(&self, params: &[na::DVector<T>]) -> na::DVector<T>;
 }
-pub trait FactorImpl: Factor<num_dual::DualDVec64> + Factor<f64> {
-    fn residual_func_dual(
-        &self,
-        params: &[na::DVector<num_dual::DualDVec64>],
-    ) -> na::DVector<num_dual::DualDVec64> {
+/// The Jacobian is computed in passes of `STRIDE` directions, as Ceres'
+/// DynamicAutoDiffCostFunction does with its default stride.
+pub const STRIDE: usize = 4;
+/// A dual number with `STRIDE` derivative directions, on the stack.
+pub type DualStride = num_dual::DualSVec64<STRIDE>;
+
+pub trait FactorImpl: Factor<DualStride> + Factor<f64> {
+    fn residual_func_dual(&self, params: &[na::DVector<DualStride>]) -> na::DVector<DualStride> {
         self.residual_func(params)
     }
     fn residual_func_f64(&self, params: &[na::DVector<f64>]) -> na::DVector<f64> {
@@ -19,12 +22,9 @@ pub trait FactorImpl: Factor<num_dual::DualDVec64> + Factor<f64> {
 
 impl<T> FactorImpl for T
 where
-    T: Factor<num_dual::DualDVec64> + Factor<f64>,
+    T: Factor<DualStride> + Factor<f64>,
 {
-    fn residual_func_dual(
-        &self,
-        params: &[na::DVector<num_dual::DualDVec64>],
-    ) -> na::DVector<num_dual::DualDVec64> {
+    fn residual_func_dual(&self, params: &[na::DVector<DualStride>]) -> na::DVector<DualStride> {
         self.residual_func(params)
     }
 

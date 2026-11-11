@@ -4,8 +4,8 @@ use std::{
 };
 
 use nalgebra as na;
-use num_dual::DualDVec64;
 
+use crate::factors::DualStride;
 use crate::manifold::Manifold;
 
 #[derive(Clone)]
@@ -47,10 +47,10 @@ impl ParameterBlock {
         }
         new_param
     }
-    pub fn plus_dual(&self, dx: na::DVectorView<DualDVec64>) -> na::DVector<DualDVec64> {
+    pub fn plus_dual(&self, dx: na::DVectorView<DualStride>) -> na::DVector<DualStride> {
         let mut new_param = na::DVector::zeros(self.ambient_size());
         if let Some(m) = &self.manifold {
-            new_param = m.plus_dual(self.params.clone().cast::<DualDVec64>().as_view(), dx);
+            new_param = m.plus_dual(self.params.clone().cast::<DualStride>().as_view(), dx);
         } else {
             self.params.clone().cast().add_to(&dx, &mut new_param);
         }
@@ -65,7 +65,7 @@ impl ParameterBlock {
         }
         delta_x
     }
-    pub fn y_minus_dual(&self, y: na::DVectorView<DualDVec64>) -> na::DVector<DualDVec64> {
+    pub fn y_minus_dual(&self, y: na::DVectorView<DualStride>) -> na::DVector<DualStride> {
         let mut delta_x = na::DVector::zeros(self.tangent_size());
         if let Some(m) = &self.manifold {
             delta_x = m.minus_dual(y, self.params.clone().cast().as_view());
