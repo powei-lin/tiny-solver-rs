@@ -13,7 +13,7 @@ pub trait Optimizer {
         problem: &problem::Problem,
         initial_values: &HashMap<String, na::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
-    ) -> Option<HashMap<String, na::DVector<f64>>>;
+    ) -> SolverSummary;
     fn apply_dx(
         &self,
         dx: &na::DVector<f64>,
@@ -80,17 +80,35 @@ pub trait Optimizer {
     }
 }
 
-#[derive(PartialEq, Debug)]
-pub enum SolverStatus {
-    Running,
-    // Resulting solution may be OK to use.
-    GradientTooSmall,         // eps > max(J'*f(x))
-    RelativeStepSizeTooSmall, // eps > ||dx|| / ||x||
-    ErrorTooSmall,            // eps > ||f(x)||
-    HitMaxIterations,
-    // Numerical issues
-    // FAILED_TO_EVALUATE_COST_FUNCTION,
-    // FAILED_TO_SOLVER_LINEAR_SYSTEM,
+/// Why the solver stopped, as Ceres' `TerminationType`.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TerminationType {
+    /// A convergence criterion was met.
+    Convergence,
+    /// `max_iteration` was reached first.
+    NoConvergence,
+    /// The solver could not go on, e.g. the cost became NaN.
+    Failure,
+}
+
+/// What `optimize` returns, after Ceres' `Solver::Summary`. The costs are those
+/// `Problem::compute_cost` measures: the sum of rho(||r_i||^2), where Ceres reports half of it.
+#[non_exhaustive]
+#[derive(Clone, Debug)]
+pub struct SolverSummary {
+    /// The best parameters found, also after a failure.
+    pub parameters: HashMap<String, na::DVector<f64>>,
+    pub termination_type: TerminationType,
+    /// Which criterion stopped the solver, or why it failed.
+    pub message: String,
+    pub initial_cost: f64,
+    pub final_cost: f64,
+    /// Accepted steps.
+    pub num_successful_steps: usize,
+    /// Rejected steps, and failed linear solves.
+    pub num_unsuccessful_steps: usize,
+    pub total_time: std::time::Duration,
 }
 
 #[derive(Clone)]

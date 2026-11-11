@@ -39,7 +39,7 @@ fn main() {
     let result = gn.optimize(&problem, &init_values, None);
     let duration = start.elapsed();
     println!("Time elapsed in total is: {:?}", duration);
-    let result_points: Vec<(f64, f64)> = result.unwrap().values().map(|v| (v[4], v[6])).collect();
+    let result_points: Vec<(f64, f64)> = result.parameters.values().map(|v| (v[4], v[6])).collect();
     scatter_ctx
         .draw_series(
             result_points

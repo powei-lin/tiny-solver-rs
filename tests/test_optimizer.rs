@@ -30,7 +30,7 @@ mod tests {
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, None)
-            .unwrap();
+            .parameters;
 
         assert!(result["x"][0].abs() < 1e-2, "x = {}", result["x"][0]);
     }
@@ -66,7 +66,7 @@ mod tests {
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, None)
-            .unwrap();
+            .parameters;
 
         assert!(result["x"][0].abs() < 1e-2, "x = {}", result["x"][0]);
         let evaluations = evaluations.load(Ordering::Relaxed);
@@ -102,7 +102,7 @@ mod tests {
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, None)
-            .unwrap();
+            .parameters;
 
         assert_eq!(result["x"][0], 0.0);
         // Running to max_iteration (100) would take hundreds of evaluations.
@@ -185,7 +185,7 @@ mod tests {
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, Some(options))
-            .unwrap();
+            .parameters;
 
         // Gradient of sum_i rho(r_i^2), with rho'(s) = 1 for s <= scale^2 and
         // scale / sqrt(s) beyond.
@@ -252,11 +252,11 @@ mod tests {
     fn levenberg_marquardt_retries_after_a_failed_linear_solve() {
         let lm = tiny_solver::LevenbergMarquardtOptimizer::default();
         let (problem, initial_values) = pose_loop(false);
-        let result = lm.optimize(&problem, &initial_values, None).unwrap();
+        let result = lm.optimize(&problem, &initial_values, None).parameters;
         let cost = problem.compute_cost(&problem.initialize_parameter_blocks(&result));
 
         let (with_prior, _) = pose_loop(true);
-        let expected = lm.optimize(&with_prior, &initial_values, None).unwrap();
+        let expected = lm.optimize(&with_prior, &initial_values, None).parameters;
         let expected = with_prior.compute_cost(&with_prior.initialize_parameter_blocks(&expected));
         assert!(
             (cost - expected).abs() < 1e-4 * expected,
@@ -278,8 +278,10 @@ mod tests {
             Box::new(tiny_solver::GaussNewtonOptimizer::default()),
         ];
         for optimizer in optimizers {
-            let expected = optimizer.optimize(&problem, &initial_values, None).unwrap();
-            let mut result = optimizer.optimize(&problem, &with_unused, None).unwrap();
+            let expected = optimizer
+                .optimize(&problem, &initial_values, None)
+                .parameters;
+            let mut result = optimizer.optimize(&problem, &with_unused, None).parameters;
             assert_eq!(result.remove("unused").unwrap(), with_unused["unused"]);
             assert_eq!(result, expected);
         }

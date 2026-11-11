@@ -53,7 +53,7 @@ mod tests {
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, Some(options))
-            .unwrap();
+            .parameters;
 
         assert!(
             (result["x"][0] - 3.0).abs() < 1e-3,

@@ -83,7 +83,7 @@ mod tests {
         ]);
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, None)
-            .unwrap();
+            .parameters;
         assert!((result["x"][0] - 5.0).abs() < 1e-6);
         assert!((result["y"][0] - 2.0).abs() < 1e-6);
         assert!((result["z"][0] - 3.0).abs() < 1e-6);

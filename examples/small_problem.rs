@@ -52,7 +52,7 @@ fn main() {
     let result = optimizer.optimize(&problem, &initial_values, None);
 
     // result
-    for (k, v) in result.unwrap() {
+    for (k, v) in result.parameters {
         println!("{}: {}", k, v);
     }
 }

@@ -68,7 +68,7 @@ mod tests {
                 };
                 optimizer
                     .optimize(&problem, &initial_values, Some(options))
-                    .unwrap()
+                    .parameters
             };
             let bits =
                 |v: &na::DVector<f64>| -> Vec<u64> { v.iter().map(|x| x.to_bits()).collect() };
