@@ -1,3 +1,4 @@
+#[non_exhaustive]
 #[derive(Default, Clone)]
 pub enum LinearSolverType {
     #[default]

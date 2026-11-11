@@ -111,6 +111,7 @@ pub struct SolverSummary {
     pub total_time: std::time::Duration,
 }
 
+#[non_exhaustive]
 #[derive(Clone)]
 pub struct OptimizerOptions {
     pub max_iteration: usize,

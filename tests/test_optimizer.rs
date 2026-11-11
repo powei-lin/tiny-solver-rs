@@ -176,12 +176,10 @@ mod tests {
         }
         let initial_values = HashMap::from([("ab".to_string(), na::dvector![0.0, 0.0])]);
         // Only stop once the step is negligible.
-        let options = tiny_solver::optimizer::OptimizerOptions {
-            min_abs_error_decrease_threshold: 0.0,
-            min_rel_error_decrease_threshold: 0.0,
-            min_error_threshold: 0.0,
-            ..Default::default()
-        };
+        let mut options = OptimizerOptions::default();
+        options.min_abs_error_decrease_threshold = 0.0;
+        options.min_rel_error_decrease_threshold = 0.0;
+        options.min_error_threshold = 0.0;
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, Some(options))
