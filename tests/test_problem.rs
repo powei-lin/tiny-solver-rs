@@ -197,6 +197,18 @@ mod tests {
         assert_eq!(residuals.ncols(), 1);
         assert_eq!(jac.nrows(), 3);
         assert_eq!(jac.ncols(), 3);
+
+        // Each block's rows land where they belong: the prior on row 0, CustomFactor on rows 1-2.
+        let (x, y, z) = (0.7, -30.2, 123.4);
+        let expected_residuals = [x - 3.0, x + y * 2.0 + z * 4.0, y * z];
+        let expected_jac = [[1.0, 0.0, 0.0], [1.0, 2.0, 4.0], [0.0, z, y]];
+        let jac = jac.to_dense();
+        for row in 0..3 {
+            assert!((residuals[(row, 0)] - expected_residuals[row]).abs() < 1e-9);
+            for col in 0..3 {
+                assert!((jac[(row, col)] - expected_jac[row][col]).abs() < 1e-9);
+            }
+        }
     }
 
     #[test]
