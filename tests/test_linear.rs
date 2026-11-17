@@ -46,14 +46,12 @@ mod tests {
             None,
         );
         let initial_values = HashMap::from([("x".to_string(), na::dvector![0.0])]);
-        let options = OptimizerOptions {
-            linear_solver_type: LinearSolverType::SparseQR,
-            ..Default::default()
-        };
+        let mut options = OptimizerOptions::default();
+        options.linear_solver_type = LinearSolverType::SparseQR;
 
         let result = tiny_solver::LevenbergMarquardtOptimizer::default()
             .optimize(&problem, &initial_values, Some(options))
-            .unwrap();
+            .parameters;
 
         assert!(
             (result["x"][0] - 3.0).abs() < 1e-3,

@@ -1,8 +1,7 @@
 use nalgebra as na;
-use rayon::prelude::*;
 
 use crate::corrector::Corrector;
-use crate::factors::FactorImpl;
+use crate::factors::{DualStride, FactorImpl, STRIDE};
 use crate::loss_functions::Loss;
 use crate::parameter_block::ParameterBlock;
 
@@ -67,41 +66,47 @@ impl ResidualBlock {
         &self,
         params: &[&ParameterBlock],
     ) -> (na::DVector<f64>, na::DMatrix<f64>) {
-        let variable_rows: Vec<usize> = params.iter().map(|x| x.tangent_size()).collect();
-        let dim_variable = variable_rows.iter().sum::<usize>();
-        let variable_row_idx_vec = get_variable_rows(&variable_rows);
-        let indentity_mat = na::DMatrix::<f64>::identity(dim_variable, dim_variable);
-
-        // ambient size
-        let params_plus_tangent_dual: Vec<na::DVector<num_dual::DualDVec64>> = params
-            .par_iter()
-            .enumerate()
-            .map(|(param_idx, param)| {
-                let zeros_with_dual = na::DVector::from_row_iterator(
-                    param.tangent_size(),
-                    (0..param.tangent_size()).map(|j| {
-                        num_dual::DualDVec64::new(
-                            0.0,
-                            num_dual::Derivative::some(na::DVector::from(
-                                indentity_mat.column(variable_row_idx_vec[param_idx][j]),
-                            )),
-                        )
-                    }),
-                );
-                param.plus_dual(zeros_with_dual.as_view())
-            })
-            .collect();
-
-        // tangent size
-        let residual_with_jacobian = self.factor.residual_func_dual(&params_plus_tangent_dual);
-        self.check_residual_count(residual_with_jacobian.nrows());
-        let mut residual = residual_with_jacobian.map(|x| x.re);
-        let jacobian = residual_with_jacobian
-            .map(|x| x.eps.unwrap_generic(na::Dyn(dim_variable), na::Const::<1>));
-        let mut jacobian =
-            na::DMatrix::<f64>::from_fn(residual_with_jacobian.nrows(), dim_variable, |r, c| {
-                jacobian[r][c]
-            });
+        let dim_variable = params.iter().map(|x| x.tangent_size()).sum::<usize>();
+        let mut residual = na::DVector::<f64>::zeros(self.dim_residual);
+        let mut jacobian = na::DMatrix::<f64>::zeros(self.dim_residual, dim_variable);
+        // The pass at `first_direction` seeds the tangent directions
+        // [first_direction, first_direction + STRIDE), as Ceres' DynamicAutoDiffCostFunction
+        // does. One pass always runs, for the residual.
+        for first_direction in (0..dim_variable.max(1)).step_by(STRIDE) {
+            let mut offset = 0;
+            let inputs: Vec<na::DVector<DualStride>> = params
+                .iter()
+                .map(|param| {
+                    let tangent_size = param.tangent_size();
+                    let delta = na::DVector::from_fn(tangent_size, |index, _| {
+                        let direction = offset + index;
+                        if direction >= first_direction && direction < first_direction + STRIDE {
+                            DualStride::new(
+                                0.0,
+                                num_dual::Derivative::derivative_generic(
+                                    na::Const::<STRIDE>,
+                                    na::Const::<1>,
+                                    direction - first_direction,
+                                ),
+                            )
+                        } else {
+                            DualStride::from_re(0.0)
+                        }
+                    });
+                    offset += tangent_size;
+                    param.plus_dual(delta.as_view())
+                })
+                .collect();
+            let dual_residual = self.factor.residual_func_dual(&inputs);
+            self.check_residual_count(dual_residual.nrows());
+            for (row, dual) in dual_residual.iter().enumerate() {
+                residual[row] = dual.re;
+                let derivatives = dual.eps.unwrap_generic(na::Const::<STRIDE>, na::Const::<1>);
+                for lane in 0..STRIDE.min(dim_variable - first_direction) {
+                    jacobian[(row, first_direction + lane)] = derivatives[lane];
+                }
+            }
+        }
         let squared_norm = residual.norm_squared();
         if let Some(loss_func) = self.loss_func.as_ref() {
             let rho = loss_func.evaluate(squared_norm);
@@ -122,16 +127,4 @@ impl ResidualBlock {
             self.residual_block_id, returned, self.dim_residual
         );
     }
-}
-
-fn get_variable_rows(variable_rows: &[usize]) -> Vec<Vec<usize>> {
-    let mut result = Vec::with_capacity(variable_rows.len());
-    let mut current = 0;
-    for &num in variable_rows {
-        let next = current + num;
-        let range = (current..next).collect();
-        result.push(range);
-        current = next;
-    }
-    result
 }

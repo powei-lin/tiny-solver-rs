@@ -62,13 +62,11 @@ mod tests {
         for optimizer in optimizers {
             let solve = || {
                 let (problem, initial_values) = read_g2o("tests/data/input_M3500_g2o.g2o");
-                let options = OptimizerOptions {
-                    max_iteration: 2,
-                    ..Default::default()
-                };
+                let mut options = OptimizerOptions::default();
+                options.max_iteration = 2;
                 optimizer
                     .optimize(&problem, &initial_values, Some(options))
-                    .unwrap()
+                    .parameters
             };
             let bits =
                 |v: &na::DVector<f64>| -> Vec<u64> { v.iter().map(|x| x.to_bits()).collect() };

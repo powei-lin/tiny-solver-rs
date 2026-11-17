@@ -5,7 +5,7 @@ use std::{collections::HashMap, time::Instant};
 use faer::sparse::Triplet;
 use faer_ext::IntoNalgebra;
 
-use crate::common::OptimizerOptions;
+use crate::common::{OptimizerOptions, SolverSummary, TerminationType};
 use crate::linear;
 use crate::optimizer;
 use crate::parameter_block::ParameterBlock;
@@ -51,7 +51,8 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
         problem: &crate::problem::Problem,
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
-    ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
+    ) -> SolverSummary {
+        let start_time = Instant::now();
         let mut parameter_blocks: HashMap<String, ParameterBlock> =
             problem.initialize_parameter_blocks(initial_values);
 
@@ -94,6 +95,9 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
         let mut last_err;
         let mut current_error = problem.compute_cost(&parameter_blocks);
+        let initial_cost = current_error;
+        let (mut num_successful_steps, mut num_unsuccessful_steps) = (0, 0);
+        let mut termination = (TerminationType::NoConvergence, "max_iteration reached");
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
 
@@ -162,6 +166,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     .sqrt();
                 if dx_na.norm() <= RELATIVE_STEP_THRESHOLD * (x_norm + RELATIVE_STEP_THRESHOLD) {
                     trace!("relative step size low");
+                    termination = (TerminationType::Convergence, "relative step size low");
                     break;
                 }
 
@@ -186,6 +191,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 if rho > 0.0 {
                     // The linear model appears to be fitting, so accept (x + dx) as the new x.
                     parameter_blocks = new_param_blocks;
+                    num_successful_steps += 1;
 
                     // Increase the trust region by reducing u
                     let tmp = 2.0 * rho - 1.0;
@@ -195,6 +201,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                     // If there's too much divergence, reduce the trust region and try again with the same parameters.
                     u *= v;
                     v *= 2.0;
+                    num_unsuccessful_steps += 1;
                     trace!("u {}", u);
                     // The parameters did not change, so the error did not either:
                     // skip the convergence checks, which would otherwise stop here.
@@ -212,6 +219,7 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
                 }
                 u *= v;
                 v *= 2.0;
+                num_unsuccessful_steps += 1;
                 trace!("solve ax=b failed, u {}", u);
                 continue;
             }
@@ -221,26 +229,38 @@ impl optimizer::Optimizer for LevenbergMarquardtOptimizer {
 
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
+                termination = (TerminationType::Convergence, "error too low");
                 break;
             } else if current_error.is_nan() {
                 log::debug!("solve ax=b failed, current error is nan");
-                return None;
+                termination = (TerminationType::Failure, "current error is nan");
+                break;
             }
 
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
+                termination = (TerminationType::Convergence, "absolute error decrease low");
                 break;
             } else if (last_err - current_error).abs() / last_err
                 < opt_option.min_rel_error_decrease_threshold
             {
                 trace!("relative error decrease low");
+                termination = (TerminationType::Convergence, "relative error decrease low");
                 break;
             }
         }
-        let params = parameter_blocks
-            .iter()
-            .map(|(k, v)| (k.to_owned(), v.params.clone()))
-            .collect();
-        Some(params)
+        SolverSummary {
+            parameters: parameter_blocks
+                .iter()
+                .map(|(k, v)| (k.to_owned(), v.params.clone()))
+                .collect(),
+            termination_type: termination.0,
+            message: termination.1.to_string(),
+            initial_cost,
+            final_cost: current_error,
+            num_successful_steps,
+            num_unsuccessful_steps,
+            total_time: start_time.elapsed(),
+        }
     }
 }

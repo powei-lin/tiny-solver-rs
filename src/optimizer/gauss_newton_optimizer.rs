@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 
 use faer_ext::IntoNalgebra;
 
-use crate::common::OptimizerOptions;
+use crate::common::{OptimizerOptions, SolverSummary, TerminationType};
 use crate::linear;
 use crate::optimizer;
 use crate::parameter_block::ParameterBlock;
@@ -29,7 +29,8 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
         problem: &crate::problem::Problem,
         initial_values: &std::collections::HashMap<String, nalgebra::DVector<f64>>,
         optimizer_option: Option<OptimizerOptions>,
-    ) -> Option<HashMap<String, nalgebra::DVector<f64>>> {
+    ) -> SolverSummary {
+        let start_time = Instant::now();
         let mut parameter_blocks: HashMap<String, ParameterBlock> =
             problem.initialize_parameter_blocks(initial_values);
 
@@ -61,6 +62,9 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
         let mut last_err;
         let mut current_error = problem.compute_cost(&parameter_blocks);
+        let initial_cost = current_error;
+        let mut num_successful_steps = 0;
+        let mut termination = (TerminationType::NoConvergence, "max_iteration reached");
 
         for i in 0..opt_option.max_iteration {
             last_err = current_error;
@@ -75,20 +79,30 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
             start = Instant::now();
             let solving_duration;
+            let mut new_param_blocks = parameter_blocks.clone();
             if let Some(dx) = linear_solver.solve(&residuals, &jac) {
                 solving_duration = start.elapsed();
                 let dx_na = dx.as_ref().into_nalgebra().column(0).clone_owned();
                 self.apply_dx2(
                     &dx_na,
-                    &mut parameter_blocks,
+                    &mut new_param_blocks,
                     &variable_name_to_col_idx_dict,
                 );
             } else {
                 log::debug!("solve ax=b failed");
-                return None;
+                termination = (TerminationType::Failure, "solve ax=b failed");
+                break;
             }
 
-            current_error = problem.compute_cost(&parameter_blocks);
+            let new_error = problem.compute_cost(&new_param_blocks);
+            if new_error.is_nan() {
+                log::debug!("solve ax=b failed, current error is nan");
+                termination = (TerminationType::Failure, "current error is nan");
+                break;
+            }
+            parameter_blocks = new_param_blocks;
+            current_error = new_error;
+            num_successful_steps += 1;
             trace!(
                 "iter:{}, total err:{}, residual + jacobian duration: {:?}, solving duration: {:?}",
                 i, current_error, residual_and_jacobian_duration, solving_duration
@@ -96,27 +110,35 @@ impl optimizer::Optimizer for GaussNewtonOptimizer {
 
             if current_error < opt_option.min_error_threshold {
                 trace!("error too low");
+                termination = (TerminationType::Convergence, "error too low");
                 break;
-            } else if current_error.is_nan() {
-                log::debug!("solve ax=b failed, current error is nan");
-                return None;
             }
 
             if (last_err - current_error).abs() < opt_option.min_abs_error_decrease_threshold {
                 trace!("absolute error decrease low");
+                termination = (TerminationType::Convergence, "absolute error decrease low");
                 break;
             } else if last_err > 0.0
                 && (last_err - current_error).abs() / last_err
                     < opt_option.min_rel_error_decrease_threshold
             {
                 trace!("relative error decrease low");
+                termination = (TerminationType::Convergence, "relative error decrease low");
                 break;
             }
         }
-        let params = parameter_blocks
-            .iter()
-            .map(|(k, v)| (k.to_owned(), v.params.clone()))
-            .collect();
-        Some(params)
+        SolverSummary {
+            parameters: parameter_blocks
+                .iter()
+                .map(|(k, v)| (k.to_owned(), v.params.clone()))
+                .collect(),
+            termination_type: termination.0,
+            message: termination.1.to_string(),
+            initial_cost,
+            final_cost: current_error,
+            num_successful_steps,
+            num_unsuccessful_steps: 0,
+            total_time: start_time.elapsed(),
+        }
     }
 }
