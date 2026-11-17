@@ -81,7 +81,6 @@ pub trait Optimizer {
 }
 
 /// Why the solver stopped, as Ceres' `TerminationType`.
-#[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TerminationType {
     /// A convergence criterion was met.
