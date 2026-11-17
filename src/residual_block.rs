@@ -69,40 +69,41 @@ impl ResidualBlock {
         let dim_variable = params.iter().map(|x| x.tangent_size()).sum::<usize>();
         let mut residual = na::DVector::<f64>::zeros(self.dim_residual);
         let mut jacobian = na::DMatrix::<f64>::zeros(self.dim_residual, dim_variable);
-        // The pass at `lo` seeds the tangent directions [lo, lo + STRIDE), as Ceres'
-        // DynamicAutoDiffCostFunction does. One pass always runs, for the residual.
-        for lo in (0..dim_variable.max(1)).step_by(STRIDE) {
+        // The pass at `first_direction` seeds the tangent directions
+        // [first_direction, first_direction + STRIDE), as Ceres' DynamicAutoDiffCostFunction
+        // does. One pass always runs, for the residual.
+        for first_direction in (0..dim_variable.max(1)).step_by(STRIDE) {
             let mut offset = 0;
             let inputs: Vec<na::DVector<DualStride>> = params
                 .iter()
                 .map(|param| {
-                    let n = param.tangent_size();
-                    let delta = na::DVector::from_fn(n, |j, _| {
-                        let d = offset + j;
-                        if d >= lo && d < lo + STRIDE {
+                    let tangent_size = param.tangent_size();
+                    let delta = na::DVector::from_fn(tangent_size, |index, _| {
+                        let direction = offset + index;
+                        if direction >= first_direction && direction < first_direction + STRIDE {
                             DualStride::new(
                                 0.0,
                                 num_dual::Derivative::derivative_generic(
                                     na::Const::<STRIDE>,
                                     na::Const::<1>,
-                                    d - lo,
+                                    direction - first_direction,
                                 ),
                             )
                         } else {
                             DualStride::from_re(0.0)
                         }
                     });
-                    offset += n;
+                    offset += tangent_size;
                     param.plus_dual(delta.as_view())
                 })
                 .collect();
-            let r = self.factor.residual_func_dual(&inputs);
-            self.check_residual_count(r.nrows());
-            for (i, x) in r.iter().enumerate() {
-                residual[i] = x.re;
-                let e = x.eps.unwrap_generic(na::Const::<STRIDE>, na::Const::<1>);
-                for k in 0..STRIDE.min(dim_variable - lo) {
-                    jacobian[(i, lo + k)] = e[k];
+            let dual_residual = self.factor.residual_func_dual(&inputs);
+            self.check_residual_count(dual_residual.nrows());
+            for (row, dual) in dual_residual.iter().enumerate() {
+                residual[row] = dual.re;
+                let derivatives = dual.eps.unwrap_generic(na::Const::<STRIDE>, na::Const::<1>);
+                for lane in 0..STRIDE.min(dim_variable - first_direction) {
+                    jacobian[(row, first_direction + lane)] = derivatives[lane];
                 }
             }
         }
