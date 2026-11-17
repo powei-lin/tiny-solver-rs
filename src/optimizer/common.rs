@@ -94,7 +94,6 @@ pub enum TerminationType {
 
 /// What `optimize` returns, after Ceres' `Solver::Summary`. The costs are those
 /// `Problem::compute_cost` measures: the sum of rho(||r_i||^2), where Ceres reports half of it.
-#[non_exhaustive]
 #[derive(Clone, Debug)]
 pub struct SolverSummary {
     /// The best parameters found, also after a failure.
