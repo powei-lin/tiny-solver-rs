@@ -43,7 +43,8 @@ Rust
 // define your own Cost/Factor struct
 // impl residual function
 // and the jacobian will be auto generated
-use nalgebra as na;
+use tiny_solver::na;
+use tiny_solver::na as nalgebra;
 struct CustomFactor {}
 impl<T: na::RealField> tiny_solver::factors::Factor<T> for CustomFactor {
     fn residual_func(&self, params: &[nalgebra::DVector<T>]) -> nalgebra::DVector<T> {
@@ -102,58 +103,6 @@ You can find other examples in
 * https://github.com/powei-lin/camera-intrinsic-calibration-rs/blob/main/src/util.rs
 * https://github.com/powei-lin/b-spline/blob/main/src/so3bspline.rs
 
-Python (Currently not maintaining)
-```py
-import numpy as np
-from tiny_solver import Problem, GaussNewtonOptimizer
-from tiny_solver.factors import PriorFactor, PyFactor
-
-# define custom cost function in python
-# the trade off is the jacobian for the problem cannot be done in parallel
-# because of gil
-def cost(x: np.ndarray, yz: np.ndarray) -> np.ndarray:
-    r0 = x[0] + 2 * yz[0] + 4 * yz[1]
-    r1 = yz[0] * yz[0]
-    return np.array([r0, r1])
-
-
-def main():
-
-    # initialize problem (factor graph)
-    problem = Problem()
-
-    # factor defined in python
-    custom_factor = PyFactor(cost)
-    problem.add_residual_block(
-        2,
-        [
-            ("x", 1),
-            ("yz", 2),
-        ],
-        custom_factor,
-        None,
-    )
-
-    # prior factor import from rust
-    prior_factor = PriorFactor(np.array([3.0]))
-    problem.add_residual_block(1, [("x", 1)], prior_factor, None)
-
-    # initial values
-    init_values = {"x": np.array([0.7]), "yz": np.array([-30.2, 123.4])}
-
-    # optimizer
-    optimizer = GaussNewtonOptimizer()
-    result_values = optimizer.optimize(problem, init_values)
-
-    # result
-    for k, v in result_values.items():
-        print(f"{k}: {v}")
-
-
-if __name__ == "__main__":
-    main()
-```
-
 ## Example
 ### Basic example
 ```sh
@@ -168,10 +117,6 @@ cd tiny-solver-rs
 
 # run rust version
 cargo run -r --example m3500_benchmark
-
-# run python version
-pip install tiny-solver matplotlib
-python3 examples/python/m3500.py
 ```
 ### Sphere 2500 dataset
 ```
